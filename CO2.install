@@ -9,7 +9,7 @@
 /**
  * Implements hook_install()
  */
-function shib_auth_install() {
+function co2_install() {
   drupal_install_schema('CO2');
 
   drupal_set_message(st('CO2 module installed successfully.'));
@@ -18,7 +18,7 @@ function shib_auth_install() {
 /**
  * Implements hook_uninstall().
  */
-function shib_auth_uninstall() {
+function co2_uninstall() {
   drupal_uninstall_schema('CO2');
 
   drupal_set_message(t('The CO2 module was uninstalled successfully.'));
@@ -27,8 +27,8 @@ function shib_auth_uninstall() {
 /**
  * Implements hook_schema().
  */
-function CO2_schema() {
-  $schema['co2_temp_log'] = array(
+function co2_schema() {
+ /* $schema['co2_temp_log'] = array(
     'description' => t('Stores the log data temporaly.'),
     'fields' => array(
       'id' => array(
@@ -109,7 +109,7 @@ function CO2_schema() {
     ),
     'primary key' => array('id'),
   );
-
+*/
   return $schema;
 }
 

@@ -13,41 +13,40 @@ function co2_year_view_form($form) {
 }
 
 /**
- * Implements of hook_menu()
+ * Implementation of hook_menu()
  */
-function co2_menu(){
+function co2_menu() {
   $items = array();
 
-   $items['CO2'] = array(
-     'title'            => 'CO2 emission',
-     'description'      => 'CO2 emission display data.',
-     'page callback'    => 'drupal_get_form',
-     'page arguments'   => array('co2_yearly'),
-     'access arguments' => array('CO2 show'),
-   );
- 
-   $items['CO2/yearly'] = array(
-     'title'            => 'General settings',
-     'type'             => MENU_DEFAULT_LOCAL_TASK,
-     'access arguments' => array('CO2 show'),
-     'weight'           => -20,
-   );
+  $items['CO2'] = array(
+    'title'            => 'CO2 emission',
+    'description'      => 'CO2 emission display data.',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('co2_yearly'),
+    'access arguments' => array('CO2 show'),
+  );
 
-   $items['CO2/montly'] = array(
-     'title'            => 'General settings',
-     'type'             => MENU_LOCAL_TASK,
-     'access arguments' => array('administer shibboleth authentication'),
-     'page callback'    => 'drupal_get_form',
-     'page arguments'   => array('co2_montly'),
-     'access arguments' => array('CO2 show'),
-     'weight'           => -10,
-   );
+  $items['CO2/yearly'] = array(
+    'title'            => 'Yearly CO2 emission save',
+    'type'             => MENU_DEFAULT_LOCAL_TASK,
+    'access arguments' => array('CO2 show'),
+    'weight'           => -20,
+  );
+
+  $items['CO2/montly'] = array(
+    'title'            => 'Montly CO2 emission save',
+    'type'             => MENU_LOCAL_TASK,
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('co2_montly'),
+    'access arguments' => array('CO2 show'),
+    'weight'           => -10,
+  );
 
   return $items;
 }
 
 /**
- * Implements of hook_perm()
+ * Implementation of hook_perm()
  */
 function co2_perm() {
   return array('CO2 show');
@@ -113,4 +112,4 @@ function co2_month_view_form_submit($form, $form_state) {
  * @return array
  *  Avaiable years in array format.
  */
-function avaiable_years () {}
+function avaiable_years() {}
