@@ -1,2 +1,116 @@
 <?php
 
+/**
+ * Year view of the CO2 emission data
+ *
+ */
+function co2_year_view_form($form) {
+  $form = array();
+
+  $form['year'] = array();
+
+  return $form;
+}
+
+/**
+ * Implements of hook_menu()
+ */
+function co2_menu(){
+  $items = array();
+
+   $items['CO2'] = array(
+     'title'            => 'CO2 emission',
+     'description'      => 'CO2 emission display data.',
+     'page callback'    => 'drupal_get_form',
+     'page arguments'   => array('co2_yearly'),
+     'access arguments' => array('CO2 show'),
+   );
+ 
+   $items['CO2/yearly'] = array(
+     'title'            => 'General settings',
+     'type'             => MENU_DEFAULT_LOCAL_TASK,
+     'access arguments' => array('CO2 show'),
+     'weight'           => -20,
+   );
+
+   $items['CO2/montly'] = array(
+     'title'            => 'General settings',
+     'type'             => MENU_LOCAL_TASK,
+     'access arguments' => array('administer shibboleth authentication'),
+     'page callback'    => 'drupal_get_form',
+     'page arguments'   => array('co2_montly'),
+     'access arguments' => array('CO2 show'),
+     'weight'           => -10,
+   );
+
+  return $items;
+}
+
+/**
+ * Implements of hook_perm()
+ */
+function co2_perm() {
+  return array('CO2 show');
+}
+
+/**
+ * CO2 emission save yearly view
+ *
+ * @return string
+ *  Return the yearly CO emission save in table format
+ */
+function co2_yearly() {}
+
+/**
+ * CO2 emission save monthly view
+ *
+ * @return string
+ *  Return the monthly CO emission save in table format
+ */
+function co2_montly() {}
+
+
+/**
+ * Validation of the CO2 emission year view
+ */
+function co2_year_view_form_validate($form, $form_state) {}
+
+/**
+ * Submit of the CO2 emission year view
+ */
+function co2_year_view_form_submit($form, $form_state) {
+
+}
+
+/**
+ * Month iew of the CO2 emission data
+ *
+ */
+function co2_month_view_form($form) {
+  $form = array();
+
+  $form['year'] = array();
+  $form['mount'] = array();
+
+  return $form;
+}
+
+/**
+ * Validation of the CO2 emission month view
+ */
+function co2_month_view_form_validate($form, $form_state) {}
+
+/**
+ * Submit of the CO2 emission month view
+ */
+function co2_month_view_form_submit($form, $form_state) {
+
+}
+
+/**
+ * Give back avaiable years
+ *
+ * @return array
+ *  Avaiable years in array format.
+ */
+function avaiable_years () {}
