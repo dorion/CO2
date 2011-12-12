@@ -45,7 +45,7 @@ function GDS_location_resolver($number) {
       "48"  => array('lat' => 51.9194380,  'lng' => 19.1451360),//Poland
       "351" => array('lat' => 39.39987199999999,  'lng' => -8.2244540),//Portugal
       "7"   => array('lat' => 61.524010,  'lng' => 105.3187560),//Russia
-      "46"  => array('lat' => 60.12816100000001,  'lng' => 18.6435010)//Sweden
+      "46"  => array('lat' => 60.12816100000001,  'lng' => 18.6435010),//Sweden
       "386" => array('lat' => 46.1512410,  'lng' => 14.9954630),//Slovenia
       "972" => array('lat' => 31.0460510,  'lng' => 34.8516120),//Israel
       "354" => array('lat' => 64.96305099999999,  'lng' => -19.0208350),//Iceland
@@ -53,4 +53,27 @@ function GDS_location_resolver($number) {
       "1"   => array('lat' => 37.090240,  'lng' => -95.7128910),//USA
     );
   }
+}
+
+function ip_location_resolver($fqdn_or_ip) {
+  $link = curl_init();
+  curl_setopt($link, CURLOPT_URL, 'http://freegeoip.net/json/'. $fqdn_or_ip);
+  curl_setopt($link, CURLOPT_RETURNTRANSFER, TRUE);
+
+  $result = curl_exec($link);
+  $http_code = curl_getinfo($link, CURLINFO_HTTP_CODE);
+
+  $error_msg = curl_error($link);
+  curl_close($link);
+
+  if ($error_msg) {
+    return $error_msg;
+  }
+
+  if ($http_code != '200') {
+    return 'Http error: '. $http_code;
+  }
+
+  $result = json_decode($result, TRUE);
+  return array('lat' => $result['latitude'], 'lnt' => $result['longitude']);
 }

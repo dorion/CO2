@@ -47,6 +47,9 @@ function co2_perm() {
 function co2_yearly() {
   $output = drupal_get_form('co2_year_view_form');
 
+  include('location_resolvel_croner.php');
+  $output .= var_dump(ip_location_resolver('193.6.222.83'));
+
   return $output;
 }
 
