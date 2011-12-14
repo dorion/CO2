@@ -18,7 +18,8 @@ require_once('db.inc.php');
 function GDS_location_resolver($number) {
   //resolvable GDS number must start with double zero
   if ($number[0] === '0' AND $number[1] === '0') {
-    if ($number[2] !== '3' AND $number[3] !== '6') {
+    if ($number[2] === '3' AND $number[3] === '6') {
+      $number = substr($number, 2);
       //Hungarian GDS location resolving
       $sql = 'SELECT
                 cim.lat,
