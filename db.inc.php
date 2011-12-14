@@ -20,6 +20,12 @@ function connect_sql($server) {
                                 'mysql_passwd' => 'd4XP545bMZrtnZ4B',
                                 'db_name' => 'co2',
                               ),
+                    'iir2' => array(
+                                'host' => 'db2.voip.niif.hu',
+                                'mysql_user' => 'iirdevelop',
+                                'mysql_passwd' => 'T3UsxS6K',
+                                'db_name' => 'iir2',
+                              ),
                   );
 
   $link = mysql_connect($sql_servers[$server]['host'], $sql_servers[$server]['mysql_user'], $sql_servers[$server]['mysql_passwd']);
