@@ -3,7 +3,7 @@
  * Implementation of hook_boot()
  */
 function co2_boot() {
-  request_one(CO2.conf.php);
+  require_once('CO2.conf.php');
 }
 
 /**
@@ -53,9 +53,8 @@ function co2_perm() {
 function co2_yearly() {
   $output = drupal_get_form('co2_year_view_form');
 
-#  include('location_resolvel_croner.php');
-#  $output .= var_dump(ip_location_resolver('193.6.222.83'));
-
+  include('conf_participant_croner.php');
+  var_dump(selector());
   return $output;
 }
 
