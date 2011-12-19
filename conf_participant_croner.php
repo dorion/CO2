@@ -9,9 +9,9 @@ require_once('db.inc.php');
 function selector() {
   $link = connect_sql(co2);
 
-  var_dump(VCR_cleaner(&$link));
+  VCR_cleaner(&$link);
 #  create_mcu_conference();
-#  create_point_to_point_conference();
+  create_point_to_point_conference(&$link);
 
   disconnect_sql(&$link);
 }
@@ -21,13 +21,33 @@ function mcu_conf_selector() {
   $mcu_gds = array('003610030', '003610040', '00365511');
   $mcu_ip = array('195.111.192.30', '195.111.192.29', '193.225.95.130');
 
+  $sql_orig = '(';
+  $sql = $sql_orig;
+
+  foreach($mcu_gds AS $key => $mcu) {
+    if ($key !== 0) {
+      $sql .= "OR ";
+    }
+    $sql .= "caller_GDS LIKE '". $mcu ."%' OR called_GDS LIKE '". $mcu ."%' ";
+  }
+
+  $key = NULL;
+  foreach($mcu_ip AS $key => $mcu) {
+    if ($sql !== $sql_orig) {
+      $sql .= "OR ";
+    }
+    $sql .= "caller_IP = '". $mcu ."' OR called_IP = '". $mcu ."' ";
+  }
+
+  return $sql .')';
+
   return " (called_GDS LIKE '". $mcu_gds[0] ."%' OR called_GDS LIKE '". $mcu_gds[1] ."%' OR called_GDS LIKE '". $mcu_gds[2] ."%' OR called_IP = '". $mcu_ip[0] ."' OR called_IP = '". $mcu_ip[1] ."' OR called_IP = '". $mcu_ip[2] ."')";
 
 
 }
 
 function create_mcu_conference() {
-  $sql = "SELECT * FROM temp_log WHERE". mcu_conf_selector();
+  $sql = "SELECT * FROM temp_log WHERE ". mcu_conf_selector() ."LIMIT 10";
 
   $result = mysql_query($sql, $link);
 
@@ -38,24 +58,54 @@ function create_mcu_conference() {
   return $sql;
 }
 
-function create_point_to_point_conference() {
-  $link = connect_sql(co2);
-  $select_sql = 'SELECT * FROM templ_log WHERE NOT'. mcu_conf_selector();
-var_dump($select_sql);
+function create_point_to_point_conference(&$link) {
+  $select_sql = 'SELECT * FROM temp_log WHERE NOT '. mcu_conf_selector();// ." LIMIT 10";
   $result = mysql_query($select_sql, $link);
 
   while ($row = mysql_fetch_assoc($result)) {
-    var_dump($row);
+    $parties[] = create_participant($row['ID'], $row['caller_GDS'], $row['caller_IP'], &$link);
+    $parties[] = create_participant($row['ID'], $row['called_GDS'], $row['called_IP'], &$link);
+
+    $insert_sql = "INSERT INTO conf (start_datetime , duration) VALUES ('". $row['start_datetime'] ."' , '". $row['duration'] ."')";
+    $result = mysql_query($insert_sql, $link);
+    $conf_id = mysql_insert_id($link);
   }
 
-/*  $insert_sql = "INSERT INTO conf (start_datetime , duration , latitude , longitude) VALUES ( NULL , NULL , NULL , NULL)";
-  $result = mysql_query($insert_sql, $link);*/
-  disconnect_sql(&$link);
 }
 
-/*function create_participant() {
-  
-}*/
+function conf_participants($conf_id, $parties, &$link) {
+  foreach($parties as $participant) {
+    $sql = "INSERT INTO conf_part_trans (cid, pid) VALUES (". $conf_id .", ". $participant .")";
+    mysql_query($sql, $link);
+  }
+}
+
+function create_participant($temp_log_id, $gds, $ip, &$link) {
+  //TODO: move attribs to conf file
+  //gatekeeper IPs
+  $exception_ips = array('195.111.192.3', '195.111.192.5');
+
+  if (in_array($ip, $exception_ips)) {
+    temp_table_cleaner($temp_log_id, $link);
+    return FALSE;
+  }
+  //check if participant is exists in db
+  $sql = "SELECT pid FROM participant WHERE GDS = '". $gds ."' OR IP = '". $ip ."'";
+
+  $party = mysql_fetch_assoc(mysql_query($sql, $link));
+  if (!empty($party)) {
+    return $party['pid'];
+  }
+  else {
+    $sql = "INSERT INTO participant (GDS, IP) VALUES ('". $gds ."', '". $ip ."')";
+
+    if (!mysql_query($sql, $link)) {
+      return FALSE;
+    }
+
+    return mysql_insert_id($link);
+  }
+}
 
 function temp_table_cleaner($id, &$db_link) {
   $sql = "DELETE FROM templ_log WHERE ID = ". $id;
@@ -74,7 +124,7 @@ function VCR_cleaner(&$link) {
     if ($key !== 0) {
       $sql .= "OR ";
     }
-    $sql .= "caller_GDS = '". $gds ."%' OR called_GDS LIKE '". $gds ."%' ";
+    $sql .= "caller_GDS LIKE '". $gds ."%' OR called_GDS LIKE '". $gds ."%' ";
   }
 
   $key = NULL;
@@ -82,7 +132,7 @@ function VCR_cleaner(&$link) {
     if ($sql !== $sql_orig) {
       $sql .= "OR ";
     }
-    $sql .= "caller_IP = '". $ip ."' OR called_IP LIKE '". $ip ."' ";
+    $sql .= "caller_IP = '". $ip ."' OR called_IP = '". $ip ."' ";
   }
 
   return mysql_query($sql, $link);
