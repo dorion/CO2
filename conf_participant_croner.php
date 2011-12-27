@@ -7,7 +7,7 @@
 require_once('db.inc.php');
 
 function selector() {
-  $link = connect_sql(co2);
+  $link = connect_sql('co2');
 
   VCR_cleaner(&$link);
   create_mcu_conference(&$link);
@@ -83,10 +83,14 @@ function create_mcu_conference(&$link) {
 
       $conf_duration = $end - $start;
       $conf_start_datetime = date('Y-m-d H:i:s');
-    }
-    $conf_id = create_conf($conf_start_datetime, $conf_duration, &$link);
 
-    transfer_connection($conf_id, $parties, &$link);
+      $conf_id = create_conf($conf_start_datetime, $conf_duration, &$link);
+
+      transfer_connection($conf_id, $parties, &$link);
+    }
+    else {
+      temp_table_cleaner($conference_participants[0]['id'], $link);
+    }
   }
 }
 
@@ -179,3 +183,5 @@ function VCR_cleaner(&$link) {
 
   return mysql_query($sql, $link);
 }
+
+selector();
