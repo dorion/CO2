@@ -11,7 +11,7 @@ function selector() {
 
   VCR_cleaner(&$link);
   create_mcu_conference(&$link);
- # create_point_to_point_conference(&$link);
+  create_point_to_point_conference(&$link);
 
   disconnect_sql(&$link);
 }
@@ -42,8 +42,6 @@ function mcu_conf_selector() {
   return $sql .')';
 
   return " (called_GDS LIKE '". $mcu_gds[0] ."%' OR called_GDS LIKE '". $mcu_gds[1] ."%' OR called_GDS LIKE '". $mcu_gds[2] ."%' OR called_IP = '". $mcu_ip[0] ."' OR called_IP = '". $mcu_ip[1] ."' OR called_IP = '". $mcu_ip[2] ."')";
-
-
 }
 
 function create_mcu_conference(&$link) {
@@ -79,38 +77,46 @@ function create_mcu_conference(&$link) {
         if ($end === NULL OR $end < $participant['end_time']) {
           $end = $participant['end_time'];
         }
-        var_dump($participant);
-        $parties[] = create_participant($participant['ID'], $participant['caller_GDS'], $participant['caller_IP'], &$link);
+
+        $parties[] = create_participant($participant['id'], $participant['gds'], $participant['ip'], &$link);
       }
 
       $conf_duration = $end - $start;
+      $conf_start_datetime = date('Y-m-d H:i:s');
     }
-  }
+    $conf_id = create_conf($conf_start_datetime, $conf_duration, &$link);
 
-  
-  return;
+    transfer_connection($conf_id, $parties, &$link);
+  }
 }
 
 function create_point_to_point_conference(&$link) {
-  $select_sql = 'SELECT * FROM temp_log WHERE NOT '. mcu_conf_selector();// ." LIMIT 10";
+  $select_sql = 'SELECT * FROM temp_log WHERE NOT '. mcu_conf_selector();//." LIMIT 100";
   $result = mysql_query($select_sql, $link);
 
   while ($row = mysql_fetch_assoc($result)) {
     $parties[] = create_participant($row['ID'], $row['caller_GDS'], $row['caller_IP'], &$link);
     $parties[] = create_participant($row['ID'], $row['called_GDS'], $row['called_IP'], &$link);
 
-    $insert_sql = "INSERT INTO conf (start_datetime , duration) VALUES ('". $row['start_datetime'] ."' , '". $row['duration'] ."')";
-    $result = mysql_query($insert_sql, $link);
-    $conf_id = mysql_insert_id($link);
-  }
+    $conf_id = create_conf($row['start_datetime'], $row['duration'], &$link);
 
+    transfer_connection($conf_id, $parties, &$link);
+  }
 }
 
-function conf_participants($conf_id, $parties, &$link) {
-  foreach($parties as $participant) {
-    $sql = "INSERT INTO conf_part_trans (cid, pid) VALUES (". $conf_id .", ". $participant .")";
-    mysql_query($sql, $link);
+function transfer_connection($conf_id, $parties, &$link) {
+  if (is_array($parties)) {
+    foreach ($parties AS $participant_id) {
+      $transfer_sql = "INSERT INTO conf_part_trans (cid, pid) VALUES (". $conf_id .", ". $participant_id .")";
+      mysql_query($transfer_sql, $link);
+    }
   }
+}
+
+function create_conf($start_datetime, $duration, &$link) {
+  $insert_sql = "INSERT INTO conf (start_datetime , duration) VALUES ('". $start_datetime ."' , '". $duration ."')";
+  $result = mysql_query($insert_sql, $link);
+  return mysql_insert_id($link);
 }
 
 function create_participant($temp_log_id, $gds, $ip, &$link) {
@@ -127,6 +133,7 @@ function create_participant($temp_log_id, $gds, $ip, &$link) {
 
   $party = mysql_fetch_assoc(mysql_query($sql, $link));
   if (!empty($party)) {
+    temp_table_cleaner($temp_log_id, &$link);
     return $party['pid'];
   }
   else {
@@ -135,13 +142,15 @@ function create_participant($temp_log_id, $gds, $ip, &$link) {
     if (!mysql_query($sql, $link)) {
       return FALSE;
     }
-//    temp_table_cleaner($temp_log_id, &$link)
-    return mysql_insert_id($link);
+    $id = mysql_insert_id($link);
+    temp_table_cleaner($temp_log_id, &$link);
+
+    return $id;
   }
 }
 
 function temp_table_cleaner($id, &$db_link) {
-  $sql = "DELETE FROM templ_log WHERE ID = ". $id;
+  $sql = "DELETE FROM temp_log WHERE ID = ". $id;
   return mysql_query($sql, $db_link);
 }
 
