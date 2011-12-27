@@ -105,7 +105,8 @@ function GDS_location_resolver($number) {
  */
 function ip_location_resolver($fqdn_or_ip) {
   $link = curl_init();
-  curl_setopt($link, CURLOPT_URL, 'http://freegeoip.net/json/'. $fqdn_or_ip);
+  $url = 'http://freegeoip.net/json/'. $fqdn_or_ip;
+  curl_setopt($link, CURLOPT_URL, $url);
   curl_setopt($link, CURLOPT_RETURNTRANSFER, TRUE);
 
   $result = curl_exec($link);
@@ -123,5 +124,30 @@ function ip_location_resolver($fqdn_or_ip) {
   }
 
   $result = json_decode($result, TRUE);
-  return array('lat' => $result['latitude'], 'lnt' => $result['longitude']);
+  return array('lat' => $result['latitude'], 'lng' => $result['longitude']);
 }
+
+function location_resolver() {
+  $link = connect_sql('co2');
+  $location = NULL;
+
+  $sql = "SELECT * FROM participant WHERE latitude IS NULL OR longitude IS NULL";
+  $result = mysql_query($sql, $link);
+
+  while ($participant = mysql_fetch_assoc($result)) {
+    $location = GDS_location_resolver($participant['GDS']);
+
+    if (!is_array($location)) {
+      $location = ip_location_resolver($participant['IP']);
+    }
+
+    if (is_array($location)) {
+      $sql = "UPDATE participant SET latitude = ". $location['lat'] .", longitude = ". $location['lng'] ." WHERE pid =". $participant['pid'];
+      mysql_query($sql, $link);
+    }
+  }
+
+  disconnect_sql(&$link);
+}
+
+location_resolver();
