@@ -10,8 +10,8 @@ function selector() {
   $link = connect_sql(co2);
 
   VCR_cleaner(&$link);
-#  create_mcu_conference();
-  create_point_to_point_conference(&$link);
+  create_mcu_conference(&$link);
+ # create_point_to_point_conference(&$link);
 
   disconnect_sql(&$link);
 }
@@ -46,16 +46,49 @@ function mcu_conf_selector() {
 
 }
 
-function create_mcu_conference() {
-  $sql = "SELECT * FROM temp_log WHERE ". mcu_conf_selector() ."LIMIT 10";
+function create_mcu_conference(&$link) {
+  $sql = "SELECT * FROM temp_log WHERE ". mcu_conf_selector();// ." AND start_datetime >= '2010-01-01 0:00:00'";
 
   $result = mysql_query($sql, $link);
 
   while ($row = mysql_fetch_assoc($result)) {
-    var_dump($row);
+    $date = explode(' ', $row['start_datetime']);
+    $starttime = strtotime($row['start_datetime']);
+
+    $rows[$date[0] .'_'. $row['called_GDS']][] = array(
+      'id' => $row['ID'],
+      'gds' => $row['caller_GDS'],
+      'ip' => $row['caller_IP'],
+      'start_time' => $starttime,
+      'end_time' => $starttime + $row['duration'],
+    );
   }
 
-  return $sql;
+  $conf_duration = NULL;
+  $conf_start_datetime = NULL;
+  foreach($rows AS $conference_name => $conference_participants) {
+    if (count($conference_participants) > 1) {
+      $start = NULL;
+      $end = NULL;
+
+      foreach($conference_participants AS $participant) {
+        if ($start === NULL OR $start > $participant['start_time']) {
+          $start = $participant['start_time'];
+        }
+
+        if ($end === NULL OR $end < $participant['end_time']) {
+          $end = $participant['end_time'];
+        }
+        var_dump($participant);
+        $parties[] = create_participant($participant['ID'], $participant['caller_GDS'], $participant['caller_IP'], &$link);
+      }
+
+      $conf_duration = $end - $start;
+    }
+  }
+
+  
+  return;
 }
 
 function create_point_to_point_conference(&$link) {
@@ -102,7 +135,7 @@ function create_participant($temp_log_id, $gds, $ip, &$link) {
     if (!mysql_query($sql, $link)) {
       return FALSE;
     }
-
+//    temp_table_cleaner($temp_log_id, &$link)
     return mysql_insert_id($link);
   }
 }
