@@ -26,10 +26,26 @@ function co2_menu() {
     'weight'           => -20,
   );
 
+  $items['CO2/yearly/%'] = array(
+    'title'            => 'Yearly CO2 emission save',
+    'type'             => MENU_CALLBACK,
+    'page callback'    => 'yearly_view',
+    'access arguments' => array('CO2 show'),
+    'weight'           => -20,
+  );
+
   $items['CO2/montly'] = array(
     'title'            => 'Montly CO2 emission save',
     'type'             => MENU_LOCAL_TASK,
     'page callback'    => 'co2_montly',
+    'access arguments' => array('CO2 show'),
+    'weight'           => -10,
+  );
+
+  $items['CO2/montly/%/%'] = array(
+    'title'            => 'Montly CO2 emission save',
+    'type'             => MENU_CALLBACK,
+    'page callback'    => 'montly_view',
     'access arguments' => array('CO2 show'),
     'weight'           => -10,
   );
@@ -53,8 +69,6 @@ function co2_perm() {
 function co2_yearly() {
   $output = drupal_get_form('co2_year_view_form');
 
-  include('conf_participant_croner.php');
-  var_dump(selector());
   return $output;
 }
 
@@ -102,7 +116,72 @@ function co2_year_view_form_validate($form, $form_state) {}
  * Submit of the CO2 emission year view
  */
 function co2_year_view_form_submit($form, $form_state) {
+  $v = $form_state['values'];
+  drupal_goto('CO2/yearly/'. $v['year']);
+}
 
+function yearly_view() {
+  $output = NULL;
+
+  db_set_active('co2');
+  $result = db_query("SELECT c.cid, c.start_datetime, c.duration, p.pid, cpt.distance , cpt.period
+                      FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+                      WHERE c.cid = cpt.cid
+                        AND p.pid = cpt.pid
+                        AND (p.longitude IS NOT NULL AND p.latitude IS NOT NULL)
+                        AND (c.longitude IS NOT NULL AND c.latitude IS NOT NULL)
+                        AND (cpt.distance IS NOT NULL AND cpt.period IS NOT NULL)
+                        AND start_datetime LIKE '%s%%'",
+                        arg(2)
+  );
+  db_set_active();
+
+  $output = data_to_table(&$result);
+
+  return $output;
+}
+
+function data_to_table(&$result) {
+  $attributes = array('class' => 'CO2_emission_save');
+  $header = array(t('Conf number'), t('Participant number'), t('Start time'), t('Duration'), t('Saving'));
+  $output = t('There is not data for this period!');
+  $table_rows = array();
+
+  while($row = db_fetch_array($result)) {
+    $rows[$row['cid']][$row['pid']] = array(
+      'distance'        => $row['distance'],
+      'period'          => $row['period'],
+      'start_datetime'  => $row['start_datetime'],
+      'duration'        => $row['duration'],
+    );
+  }
+
+  if(empty($rows)) {
+    return $output;
+  }
+
+  foreach($rows AS $cid => $conference) {
+    $conf_save = 0;
+    $conf_start_datetime = NULL;
+    $conf_duration = NULL;
+
+    foreach($conference AS $pid => $participant) {
+      $party_save = emission_computing($participant['distance'], $participant['period']);
+      $conf_save += $party_save;
+      $participants_rows[] = array('&nbsp', $pid, '&nbsp', $participant['period'], $party_save);
+      $conf_start_datetime = $participant['start_datetime'];
+      $conf_duration = $participant['duration'];
+    }
+    $table_rows[] = array($cid, '&nbsp', $conf_start_datetime, $conf_duration, $conf_save);
+    $table_rows += $participants_rows;
+    $table_rows[] = array('&nbsp', '&nbsp', '&nbsp', '&nbsp', '&nbsp');
+  }
+
+  if (!empty($table_rows)) {
+    $output .= theme_table($header, $table_rows, $attributes);
+  }
+
+return $output;
 }
 
 /**
@@ -115,7 +194,20 @@ function co2_month_view_form($form_state) {
   $form['month'] = array(
             '#type'     => 'select',
             '#title'    => t('Month'),
-            '#options'  => array('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'),
+            '#options'  => array(
+              '01' => '01',
+              '02' => '02',
+              '03' => '03',
+              '04' => '04',
+              '05' => '05',
+              '06' => '06',
+              '07' => '07',
+              '08' => '08',
+              '09' => '09',
+              '10' => '10',
+              '11' => '11',
+              '12' => '12'
+            ),
             '#weight'   => -10,
           );
 
@@ -131,7 +223,29 @@ function co2_month_view_form_validate($form, $form_state) {}
  * Submit of the CO2 emission month view
  */
 function co2_month_view_form_submit($form, $form_state) {
+  $v = $form_state['values'];
+  drupal_goto('CO2/yearly/'. $v['year'] .'/'. $v['month']);
+}
 
+function monthly_view() {
+  $output = NULL;
+
+  db_set_active('co2');
+  $result = db_query("SELECT c.cid, p.pid, cpt.distance , cpt.period
+                      FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+                      WHERE c.cid = cpt.cid
+                        AND p.pid = cpt.pid
+                        AND (p.longitude IS NOT NULL AND p.latitude IS NOT NULL)
+                        AND (c.longitude IS NOT NULL AND c.latitude IS NOT NULL)
+                        AND (cpt.distance IS NOT NULL AND cpt.period IS NOT NULL)
+                        AND start_datetime like '%s-%s%%'",
+                        arg(2), arg(3)
+  );
+  db_set_active();
+
+  $output = data_to_table(&$result);
+
+  return $output;
 }
 
 /**
@@ -142,6 +256,14 @@ function co2_month_view_form_submit($form, $form_state) {
  */
 function avaiable_years() {
   $years = array();
+
+  db_set_active('co2');
+  $result = db_query("SELECT EXTRACT(YEAR FROM start_datetime) AS year FROM conf WHERE 1 GROUP BY year");
+  db_set_active();
+
+  while($year = db_fetch_array($result)) {
+    $years[$year['year']] = $year['year'];
+  }
 
   return $years;
 }
