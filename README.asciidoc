@@ -8,6 +8,13 @@
 
 === Install the Drupal CO2 module
 
+----------
+cd /your/drupal_root/sites/all/modules
+git clone git://github.com/dorion/CO2.git
+----------
+
+After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
+
 === Configure cron jobs
 
 === Implementation Remarks
