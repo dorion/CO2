@@ -58,30 +58,49 @@ function resolve_distance() {
   $link = connect_sql('co2');
   $sleep = 30;
 
-  $sql = "SELECT c.cid, p.pid, p.latitude, p.longitude
+  $sql = "SELECT c.cid
           FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
           WHERE c.cid = cpt.cid
             AND p.pid = cpt.pid
             AND (p.longitude IS NOT NULL OR p.latitude IS NOT NULL)
             AND (c.longitude IS NULL OR c.latitude IS NULL)
-            LIMIT 10
+            GROUP BY c.cid
           ";
 
   $result = mysql_query($sql, $link);
+  $confs = array();
   while ($row = mysql_fetch_assoc($result)) {
-    $confs[$row['cid']][$row['pid']] = array('lat' => $row['latitude'], 'lng' => $row['longitude']);
+    $confs[] = $row['cid'];
   }
 
-  foreach($confs AS $cid => $participants) {
+  $participants = array();
+  foreach($confs AS $cid) {
+    $sql = "SELECT c.cid, p.pid, p.latitude, p.longitude
+            FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+            WHERE c.cid = cpt.cid
+              AND p.pid = cpt.pid
+              AND (p.longitude IS NOT NULL OR p.latitude IS NOT NULL)
+              AND (c.longitude IS NULL OR c.latitude IS NULL)
+              AND c.cid = ". $cid ."
+            ";
+
+    $result = mysql_query($sql, $link);
+    while ($row = mysql_fetch_assoc($result)) {
+      $conf_part[$row['cid']][$row['pid']] = array('lat' => $row['latitude'], 'lng' => $row['longitude']);
+    }
+  }
+
+  foreach($conf_part AS $cid => $participants) {
     $conf_location = array_shift($participants);
-    $sql = "UPDATE conf SET latitude = ". $conf_location['lat'] ." longitude = ". $conf_location['lng'] ."WHERE cid = ". $cid;
+    $sql = "UPDATE conf SET latitude = ". $conf_location['lat'] .", longitude = ". $conf_location['lng'] ." WHERE cid = ". $cid;
     mysql_query($sql, $link);
+
     foreach($participants AS $pid => $participant) {
       $dist_time = distance_and_time_resolver($conf_location, array('lat' => $participant['lat'], 'lng' => $participant['lng']));
       if (is_array($dist_time)) {
         $sleep = 30;
         $sql = "UPDATE conf_part_trans
-                SET distance = ". $dist_time['distance'] ." period = ". $dist_time['duration'] ."
+                SET distance = ". $dist_time['distance'] .", period = ". $dist_time['duration'] ."
                 WHERE pid = ". $pid ." AND cid = ". $cid;
         mysql_query($sql, $link);
       }
