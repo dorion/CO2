@@ -64,6 +64,11 @@ function create_mcu_conference(&$link) {
 
   $conf_duration = NULL;
   $conf_start_datetime = NULL;
+
+  if (empty($rows)) {
+    return NULL;
+  }
+
   foreach($rows AS $conference_name => $conference_participants) {
     if (count($conference_participants) > 1) {
       $start = NULL;
