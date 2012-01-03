@@ -15,13 +15,12 @@ require_once('db.inc.php');
  *  An array if success which include distance and time values and a string if unsuccessfull
  */
 function distance_and_time_resolver($start_point, $end_point) {
-  $lint = curl_init();
-
-  $link = curl_init();
-  $url = 'http://maps.googleapis.com/maps/api/distancematrix/json?origins='.
-          $start_point['lat'] .','. $start_point['lng'] .'&destinations='. $end_point['lat'] .','. $end_point['lng']
+  $url = 'http://maps.googleapis.com/maps/api/distancematrix/json'
+          .'?origins='. $start_point['lat'] .','. $start_point['lng']
+          .'&destinations='. $end_point['lat'] .','. $end_point['lng']
           .'&units=metric&sensor=false';
 
+  $link = curl_init();
   curl_setopt($link, CURLOPT_URL, $url);
   curl_setopt($link, CURLOPT_RETURNTRANSFER, TRUE);
 
@@ -65,6 +64,7 @@ function resolve_distance() {
             AND (p.longitude IS NOT NULL OR p.latitude IS NOT NULL)
             AND (c.longitude IS NULL OR c.latitude IS NULL)
             GROUP BY c.cid
+            LIMIT 5
           ";
 
   $result = mysql_query($sql, $link);
