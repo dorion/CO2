@@ -52,7 +52,7 @@ CREATE TABLE conf (
   latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
   longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
   PRIMARY KEY (cid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=2244 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 CREATE TABLE conf_part_trans (
@@ -61,7 +61,7 @@ CREATE TABLE conf_part_trans (
   distance double unsigned DEFAULT NULL,
   period int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (cid,pid)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 CREATE TABLE participant (
@@ -71,7 +71,7 @@ CREATE TABLE participant (
   latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
   longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
   PRIMARY KEY (pid)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
 CREATE TABLE temp_log (
@@ -84,7 +84,7 @@ CREATE TABLE temp_log (
   caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
   called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (ID)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=9127 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
 
 ----------
 
