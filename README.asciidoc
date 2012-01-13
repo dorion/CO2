@@ -2,7 +2,22 @@
 
 == Introducion
 
+This project is an Drupal module and some helper PHP script, which are process CDR log messages to define CO2 emission save of the videoconference units.
+
+== Features
+
+* filter the original log messages
+* separate the conferences and the participants from the CDR messages
+* resolve locations by GDS number or IP
+* resolve distance and possible travel time whit Google distance API
+* create table base CO2 emission save report
+
 == How is works?
+
+Install the croner scripts, which are process the logs. The scripts separate and write to database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finaly it resolve the distance and the possibly travel time between the conference and the participants.
+
+After that the Drupal modul create CO emission save report in yearly and montly resolution.
+
 
 == Installing
 
@@ -16,8 +31,66 @@ git clone git://github.com/dorion/CO2.git
 After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
 
 === Configure cron jobs
+----------
+crontab -e
 
-=== Implementation Remarks
+MAILTO=youremail@example.com
+1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
+5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
+5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
+----------
+
+=== Create database structure
+
+Here is the database schema:
+
+----------
+CREATE TABLE conf (
+  cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
+  start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
+  duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
+  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+  PRIMARY KEY (cid)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+CREATE TABLE conf_part_trans (
+  cid int(10) unsigned NOT NULL,
+  pid int(10) unsigned NOT NULL,
+  distance double unsigned DEFAULT NULL,
+  period int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (cid,pid)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+CREATE TABLE participant (
+  pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
+  GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
+  IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
+  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+  PRIMARY KEY (pid)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+CREATE TABLE temp_log (
+  ID int(10) unsigned NOT NULL AUTO_INCREMENT,
+  conf_id varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+  start_datetime datetime NOT NULL,
+  duration int(10) unsigned NOT NULL COMMENT 'Duration in second',
+  caller_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  called_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (ID)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
+
+----------
+
+== Implementation Remarks
 
 * The CO2 calculator implemented in http://php.net[PHP] and http://api.drupal.org[Drupal API]
 * Powerful database back-end on http://www.mysql.com[MySQL]
+* Location resolving by IP with http://freegeoip.net[Free geoIP]
+* Destination and travel time resolving with http://code.google.com/intl/hu-HU/apis/maps/documentation/distancematrix/[The Google Distance Matrix API]
