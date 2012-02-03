@@ -39,8 +39,9 @@ function GDS_location_resolver($number) {
       $result = mysql_query($sql, $link);
       disconnect_sql($link);
 
-      if (mysql_num_rows($result)) {
-        return mysql_fetch_assoc($result);
+      $location = mysql_fetch_assoc($result);
+      if (!empty($location) AND !empty($location['lat']) OR !empty($location['lat'])) {
+        return $location;
       }
       else {
         return array('lat' => 47.1624940, 'lng' => 19.5033040);//Hungary
