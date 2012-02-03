@@ -45,7 +45,7 @@ function distance_and_time_resolver($start_point, $end_point) {
       return array('distance' => $result['rows'][0]['elements'][0]['distance']['value'], 'duration' => $result['rows'][0]['elements'][0]['duration']['value']);
     }
     else {
-      return $result['rows']['elements'][0]['status'];
+      return $result['rows'][0]['elements'][0]['status'];
     }
   }
   else {
@@ -53,18 +53,42 @@ function distance_and_time_resolver($start_point, $end_point) {
   }
 }
 
+function distance_and_time_db_cache($src, $dst, &$link) {
+  $sql = "SELECT cpt.period, cpt.distance
+          FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+          WHERE c.cid = cpt.cid
+                AND p.pid = cpt.pid
+                AND (cpt.distance IS NOT NULL OR cpt.period IS NOT NULL)
+                AND (
+                    (p.latitude = ". $src['lat'] ."
+                    AND p.longitude = ". $src['lng'] ."
+                    AND c.latitude = ". $dst['lat'] ."
+                    AND c.longitude = ". $dst['lng'] .")
+                  OR
+                    (p.latitude = ". $dst['lat'] ."
+                    AND p.longitude = ". $dst['lng'] ."
+                    AND c.latitude = ". $src['lat'] ."
+                    AND c.longitude = ". $src['lng'] ."))";
+
+  $result = mysql_query($sql, $link);
+  $result = mysql_fetch_assoc($result);
+
+  if($result) {
+    return array('distance' => $result['distance'], 'duration' => $result['period']);
+  }
+  else {
+    return FALSE;
+  }
+}
+
 function resolve_distance() {
   $link = connect_sql('co2');
   $sleep = 30;
 
-  $sql = "SELECT c.cid
-          FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
-          WHERE c.cid = cpt.cid
-            AND p.pid = cpt.pid
-            AND (p.longitude IS NOT NULL OR p.latitude IS NOT NULL)
-            AND (c.longitude IS NULL OR c.latitude IS NULL)
-            GROUP BY c.cid
-            LIMIT 5
+  $sql = "SELECT cpt.cid
+          FROM conf_part_trans AS cpt
+          WHERE cpt.period IS NULL OR cpt.distance IS NULL
+          GROUP BY cpt.cid
           ";
 
   $result = mysql_query($sql, $link);
@@ -74,13 +98,14 @@ function resolve_distance() {
   }
 
   $participants = array();
+  $conf_part = array();
   foreach($confs AS $cid) {
     $sql = "SELECT c.cid, p.pid, p.latitude, p.longitude
             FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
             WHERE c.cid = cpt.cid
               AND p.pid = cpt.pid
               AND (p.longitude IS NOT NULL OR p.latitude IS NOT NULL)
-              AND (c.longitude IS NULL OR c.latitude IS NULL)
+              AND (cpt.distance IS NULL OR cpt.period IS NULL)
               AND c.cid = ". $cid ."
             ";
 
@@ -90,34 +115,48 @@ function resolve_distance() {
     }
   }
 
-  foreach($conf_part AS $cid => $participants) {
-    $conf_location = array_shift($participants);
-    $sql = "UPDATE conf SET latitude = ". $conf_location['lat'] .", longitude = ". $conf_location['lng'] ." WHERE cid = ". $cid;
-    mysql_query($sql, $link);
+  if(!empty($conf_part)) {
+    foreach($conf_part AS $cid => $participants) {
+      $conf_location = _array_shift(&$participants);
+      $sql = "UPDATE conf SET latitude = ". $conf_location['lat'] .", longitude = ". $conf_location['lng'] ." WHERE cid = ". $cid;
+      mysql_query($sql, $link);
 
-    foreach($participants AS $pid => $participant) {
-      $dist_time = distance_and_time_resolver($conf_location, array('lat' => $participant['lat'], 'lng' => $participant['lng']));
-      if (is_array($dist_time)) {
-        $sleep = 30;
-        $sql = "UPDATE conf_part_trans
-                SET distance = ". $dist_time['distance'] .", period = ". $dist_time['duration'] ."
-                WHERE pid = ". $pid ." AND cid = ". $cid;
-        mysql_query($sql, $link);
-      }
-      else {
-        if ($dist_time === 'OVER_QUERY_LIMIT') {
-          $sleep = 2 * $sleep;
-          print("Sleeping " . $sleep ." seconds\n");
-          sleep($sleep);
+      foreach($participants AS $pid => $participant) {
+        $participant_location = array('lat' => $participant['lat'], 'lng' => $participant['lng']);
+        if (!($dist_time = distance_and_time_db_cache($conf_location, $participant_location, &$link))) {
+          $dist_time = distance_and_time_resolver($conf_location, $participant_location);
+        }
+        if (is_array($dist_time)) {
+          $sleep = 30;
+          $sql = "UPDATE conf_part_trans
+                  SET distance = ". $dist_time['distance'] .", period = ". $dist_time['duration'] ."
+                  WHERE pid = ". $pid ." AND cid = ". $cid;
+          var_dump($sql);
+          var_dump(mysql_query($sql, $link));
         }
         else {
-          var_dump($dist_time);
+          if ($dist_time === 'OVER_QUERY_LIMIT') {
+    #        die($dist_time);
+/*            $sleep = 2 * $sleep;
+            print("Sleeping " . $sleep ." seconds\n");
+            sleep($sleep);*/
+          }
+          else {
+            var_dump($dist_time);
+          }
         }
       }
     }
   }
 
   disconnect_sql(&$link);
+}
+
+function _array_shift(&$array) {
+  $first_key = key($array);
+  $first = $array[$first_key];
+  unset($array[$first_key]);
+  return $first;
 }
 
 resolve_distance();
