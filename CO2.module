@@ -448,13 +448,37 @@ function emission_summary($year, $month = '%') {
     $sum_GHG_emission_save += $conf_save;
   }
 
-  $sum_GHG_emission_save = ceil($sum_GHG_emission_save / 1000);
-  $sum_time_save = $sum_time_save;
-  $table_rows[] = array($sum_GHG_emission_save .t(' kg'), $sum_time_save .t(' minutes'));
+  $sum_GHG_emission_save = ceil( $sum_GHG_emission_save / 1000 );//from g to kg
+  $sum_time_save = hours_and_minutes($sum_time_save);//from s to days,hours,minutes,secounds
+  $table_rows[] = array($sum_GHG_emission_save .t(' kg'), $sum_time_save);
 
   if (!empty($table_rows)) {
     $output = theme_table($header, $table_rows, $attributes);
   }
 
 return $output;
+}
+
+/**
+ * Convert seconds to days hours minutes second fromat
+ *
+ * @param $seconds
+ *   Seconds to convert.
+ *
+ * @return
+ *   Return whit string which is containing the input seconds converted to "# day # hour # minute # second" format.
+ */
+function hours_and_minutes($seconds) {
+  $minutes = floor( $seconds / 60);
+  $hours   = floor( $minutes / 60 );
+  $days    = floor( $hours / 24 );
+
+  $display_seconds  = $seconds - ( $minutes * 60 );
+  $display_hours    = $hours - ( $days * 24 );
+  $display_minutes  = $minutes - ( $hours * 60 );
+
+  return format_plural($days, '1 day', '@count days') .' '.
+         format_plural($display_hours, '1 hour', '@count hours') .' '.
+         format_plural($display_minutes, '1 minute', '@count minutes') .' '.
+         format_plural($display_seconds, '1 second', '@count seconds');
 }
