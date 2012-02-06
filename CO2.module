@@ -327,19 +327,37 @@ function avaiable_years() {
 /**
  * Emission save computing
  *
+ * @param $party_dist
+ *   Participant distance from the conferende place in meter.
+ * @param $conf_duration
+ *   Conference duration in second.
+ *
+ * @return
+ *   An array which is containing the GHG emission save(key: save),
+ *   the vehicle GHG emission(key: vehicle_co2)
+ *   and the vidconf equipments GHG emission(key: vidconf_co2).
  */
 function emission_computing($party_dist, $conf_duration) {
   $save = 0;
 
   $vehicle_co2 = vehicle_co2($party_dist);
   $vidconf_env_co2 = vidconf_env_co2();
-  $vehicle_emission = ($party_dist/1000) * $vehicle_co2; //CO2 emission in gram
-  $vidconf_emission = $conf_duration * $vidconf_env_co2; //CO2 emission in gram
+  $vehicle_emission = ( $party_dist / 1000 ) * $vehicle_co2 * 2; //round-trip vehicle CO2 emission in gramm
+  $vidconf_emission = $conf_duration * $vidconf_env_co2; //CO2 emission in gramm
   $save = $vehicle_emission - $vidconf_emission;
 
   return array('save' => $save, 'vehicle_co2' => $vehicle_emission, 'vidconf_co2' => $vidconf_emission);
 }
 
+/**
+ * Give back the vehicle GHG emission based on the distance in g/km
+ *
+ * @param $distance
+ *   Distance in km.
+ *
+ * @return
+ *   Vehicle GHG emission value in g/km.
+ */
 function vehicle_co2($distance) {
   if ($distance > 0 AND $distance <= DISTANCE_CAR) {
     return CO2_EMISSION_CAR;
@@ -355,10 +373,27 @@ function vehicle_co2($distance) {
   }
 }
 
+/**
+ * Give back the GHG emission value of the videoconference equipments.
+ *
+ * @return
+ *   Amount of the MCU and the endpoints GHG emission in g/hour.
+ */
 function vidconf_env_co2() {
   return CO2_EMISSION_MCU + CO2_EMISSION_VIDCONF_ENDPOINT;
 }
 
+/**
+ * Summary of the period. All GHG emission and work hour saving.
+ *
+ * @param $year
+ *   Year of the period. Required!
+ * @param $month
+ *   Month of the period. Optional.
+ *
+ * @return
+ *   Return the summarized data in a HTML table.
+ */
 function emission_summary($year, $month = '%') {
   $attributes = array('class' => 'GHG emission');
   $header = array(
@@ -413,7 +448,9 @@ function emission_summary($year, $month = '%') {
     $sum_GHG_emission_save += $conf_save;
   }
 
-  $table_rows[] = array($sum_GHG_emission_save .t(' g'), $sum_time_save .t(' minutes'));
+  $sum_GHG_emission_save = ceil($sum_GHG_emission_save / 1000);
+  $sum_time_save = $sum_time_save;
+  $table_rows[] = array($sum_GHG_emission_save .t(' kg'), $sum_time_save .t(' minutes'));
 
   if (!empty($table_rows)) {
     $output = theme_table($header, $table_rows, $attributes);
