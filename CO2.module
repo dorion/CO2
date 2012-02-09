@@ -50,6 +50,15 @@ function co2_menu() {
     'weight'           => -10,
   );
 
+  $items['CO2/conference/%'] = array(
+    'title'            => 'Conference details',
+    'type'             => MENU_CALLBACK,
+    'page callback'    => 'view_participants',
+    'page arguments'   => array(2),
+    'access arguments' => array('CO2 show'),
+    'weight'           => -10,
+  );
+
   return $items;
 }
 
@@ -57,7 +66,25 @@ function co2_menu() {
  * Implementation of hook_perm()
  */
 function co2_perm() {
-  return array('CO2 show');
+  return array(
+    'CO2 show',
+    'CO2 show extra data'
+  );
+}
+
+/**
+ * Implementation hook_theme()
+ */
+function co2_theme($existing, $type, $theme, $path) {
+  return array(
+    'GHG_emission_map' => array(
+      'template'  => 'map',
+      'arguments' => array(
+        'origins'       => '[]',
+        'destinations'  => '[]',
+      ),
+    ),
+  );
 }
 
 /**
@@ -120,50 +147,6 @@ function co2_year_view_form_submit($form, $form_state) {
 
 function yearly_view() {
   return monthly_view();
-}
-
-function _data_to_table(&$result) {
-  $attributes = array('class' => 'CO2_emission_save');
-  $header = array(t('Conf ID'), t('Participant ID'), t('Start time'), t('Duration'), t('Counted CO2 emission'), t('Saving'));
-  $output = t('There is not data for this period!');
-  $table_rows = array();
-
-  while($row = db_fetch_array($result)) {
-    $rows[$row['cid']][$row['pid']] = array(
-      'distance'        => $row['distance'],
-      'period'          => $row['period'],
-      'start_datetime'  => $row['start_datetime'],
-      'duration'        => $row['duration'],
-    );
-  }
-
-  if(empty($rows)) {
-    return $output;
-  }
-
-  foreach($rows AS $cid => $conference) {
-    $conf_save = 0;
-    $conf_start_datetime = NULL;
-    $conf_duration = NULL;
-
-    foreach($conference AS $pid => $participant) {
-      $emission_data = emission_computing($participant['distance'], $participant['period']);
-      $conf_save += $emission_data['save'];
-      $conf_emission = $emission_data['vidconf_co2'];
-      $participants_rows[] = array('&nbsp', $pid, '&nbsp', $participant['period'], $emission_data['vehicle_co2'], $emission_data['save']);
-      $conf_start_datetime = $participant['start_datetime'];
-      $conf_duration = $participant['duration'];
-    }
-    $table_rows[] = array($cid, '&nbsp', $conf_start_datetime, $conf_duration, '&nbsp', $conf_save);
-    $table_rows += $participants_rows;
-    $table_rows[] = array('&nbsp', '&nbsp', '&nbsp', '&nbsp', '&nbsp', '&nbsp');
-  }
-
-  if (!empty($table_rows)) {
-    $output .= theme_table($header, $table_rows, $attributes);
-  }
-
-return $output;
 }
 
 /**
@@ -244,7 +227,7 @@ function monthly_view() {
 
 function _confs_to_table(&$result) {
   $attributes = array('class' => 'CO2_confs');
-  $header = array(t('Conf ID'), t('Start time'), t('Duration'), t('Saving'));
+  $header = array(t('Conf ID'), t('Start time'), t('Duration'), t('GHG emission saving (kg)'));
   $output = t('There is not data for this period!');
   $table_rows = array();
 
@@ -273,7 +256,12 @@ function _confs_to_table(&$result) {
       $conf_start_datetime = $participant['start_datetime'];
       $conf_duration = $participant['duration'];
     }
-    $table_rows[] = array($cid, $conference['start_datetime'], $conference['duration'], $conf_save);
+    $table_rows[] = array(
+      l($cid, 'CO2/conference/'.$cid),//link to the conference details
+      $conference['start_datetime'],//conference start datetime
+      hours_and_minutes($conference['duration']),//duration
+      round($conf_save / 1000, 2) //GHG emission save in kg
+    );
   }
 
   if (!empty($table_rows)) {
@@ -302,6 +290,85 @@ function participants_of_the_conference($cid) {
   }
 
   return $participants;
+}
+
+/**
+ *  Show a conference participant, and the participants savings.
+ *
+ * @param $cid
+ *   Conference ID, it is an integer.
+ *
+ * @return
+ *   HTML table which containing participant of the conference and their savings.
+ */
+function view_participants($cid) {
+  $attributes = array('class' => 'conference details');
+  $header = array(t('Participant ID'), t('Suspected GHG emission (kg)'), t('GHG emission saving (kg)'), t('Working hours savings'));
+  $output = t('There is not participant!');
+  $table_rows = array();
+
+  $sql = "SELECT
+            p.pid, cpt.distance, cpt.period, p.latitude, p.longitude, c.latitude AS conf_lat, c.longitude AS conf_lng
+          FROM
+            conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+          ON
+            c.cid = cpt.cid AND p.pid = cpt.pid
+          WHERE
+            c.cid = %d";
+
+  db_set_active('co2');
+  $result = db_query($sql, $cid);
+  db_set_active();
+
+  while($row = db_fetch_array($result)) {
+    $rows[] = array(
+      'pid'       => $row['pid'],
+      'distance'  => $row['distance'],
+      'period'    => $row['period'],
+      'latitude'  => $row['latitude'],
+      'longitude' => $row['longitude'],
+    );
+    $conf_coordinate = array('lat' => $row['conf_lat'], 'lng' => $row['conf_lng']);
+  }
+
+  if(empty($rows)) {
+    return $output;
+  }
+
+  $origins      = '[';
+  $destinations = '[';
+  foreach($rows AS $key => $participant) {
+    $emission_data = emission_computing($participant['distance'], $participant['period']);
+    $conf_save += $emission_data['save'];
+    $conf_emission = $emission_data['vidconf_co2'];
+    $table_rows[$key] = array(
+      $participant['pid'],
+      round($emission_data['vehicle_co2'] / 1000, 2),
+      round($emission_data['save'] / 1000, 2),
+      hours_and_minutes($participant['period'])
+    );
+    if (user_access('CO2 show extra data')) {
+      array_push($table_rows[$key], $participant['latitude']);
+      array_push($table_rows[$key], $participant['longitude']);
+      $origins      .= 'new google.maps.LatLng('. $conf_coordinate['lat'] .', '. $conf_coordinate['lng'] .'), ';
+      $destinations .= 'new google.maps.LatLng('. $participant['latitude'] .', '. $participant['longitude'] .'), ';
+    }
+    $conf_start_datetime = $participant['start_datetime'];
+    $conf_duration = $participant['duration'];
+  }
+  $origins      .= ']';
+  $destinations .= ']';
+
+  if (!empty($table_rows)) {
+    if (user_access('CO2 show extra data')) {
+      $header[] = t('Latitude');
+      $header[] = t('Longitude');
+    }
+    $output = theme_table($header, $table_rows, $attributes);
+    $output .= theme('GHG_emission_map', $origins, $destinations);
+  }
+
+return $output;
 }
 
 /**
@@ -469,16 +536,23 @@ return $output;
  *   Return whit string which is containing the input seconds converted to "# day # hour # minute # second" format.
  */
 function hours_and_minutes($seconds) {
-  $minutes = floor( $seconds / 60);
-  $hours   = floor( $minutes / 60 );
-  $days    = floor( $hours / 24 );
+  $time = '';
+
+  $minutes  = floor( $seconds / 60);
+  $hours    = floor( $minutes / 60 );
+  $days     = floor( $hours / 24 );
+  $years    = floor( $days / 365 );
 
   $display_seconds  = $seconds - ( $minutes * 60 );
-  $display_hours    = $hours - ( $days * 24 );
   $display_minutes  = $minutes - ( $hours * 60 );
+  $display_hours    = $hours - ( $days * 24 );
+  $display_days     = $days - ( $years * 365 );
 
-  return format_plural($days, '1 day', '@count days') .' '.
-         format_plural($display_hours, '1 hour', '@count hours') .' '.
-         format_plural($display_minutes, '1 minute', '@count minutes') .' '.
-         format_plural($display_seconds, '1 second', '@count seconds');
+  $time .= $years ? format_plural($years, '1 year', '@count years') .' ' : NULL;
+  $time .= $display_days ? format_plural($display_days, '1 day', '@count days') .' ' : NULL;
+  $time .= $display_hours ? format_plural($display_hours, '1 hour', '@count hours') .' ' : NULL;
+  $time .= $display_minutes ? format_plural($display_minutes, '1 minute', '@count minutes') .' ' : NULL;
+  $time .= $display_second ? format_plural($display_seconds, '1 second', '@count seconds') : NULL;
+
+  return $time;
 }
