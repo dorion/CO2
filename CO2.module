@@ -464,28 +464,31 @@ function vidconf_env_co2() {
 function emission_summary($year, $month = '%') {
   $attributes = array('class' => 'GHG emission');
   $header = array(
-      array(
-        'data'  => t('GHG emission saving'),
-      ),
-      array(
-        'data'  => t('Working hours saving'),
-      ),
+      array('data'  => t('Number of conference'),),
+      array('data'  => t('GHG emission saving'),),
+      array('data'  => t('Working hours saving'),),
   );
 
   $table_rows = array();
 
+  $sql = "SELECT
+            c.cid, c.start_datetime, c.duration, p.pid, cpt.distance, cpt.period
+          FROM
+            conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
+          WHERE
+            c.cid = cpt.cid
+            AND p.pid = cpt.pid
+            AND (p.longitude IS NOT NULL AND p.latitude IS NOT NULL)
+            AND (c.longitude IS NOT NULL AND c.latitude IS NOT NULL)
+            AND (cpt.distance IS NOT NULL AND cpt.period IS NOT NULL)
+            AND start_datetime LIKE '%s-%s%%'";
+
+  $sql_num = $sql .'GROUP BY cid';
+
   db_set_active('co2');
-  $result = db_query(
-    "SELECT c.cid, c.start_datetime, c.duration, p.pid, cpt.distance, cpt.period
-     FROM conf AS c JOIN conf_part_trans AS cpt JOIN participant AS p
-     WHERE c.cid = cpt.cid
-      AND p.pid = cpt.pid
-      AND (p.longitude IS NOT NULL AND p.latitude IS NOT NULL)
-      AND (c.longitude IS NOT NULL AND c.latitude IS NOT NULL)
-      AND (cpt.distance IS NOT NULL AND cpt.period IS NOT NULL)
-      AND start_datetime LIKE '%s-%s%%'",
-    $year, $month
-  );
+  $result = db_query($sql, $year, $month);
+  $result_num = db_query($sql_num, $year, $month);
+  $numberofconf = db_affected_rows();
   db_set_active();
 
   while($row = db_fetch_array($result)) {
@@ -507,17 +510,17 @@ function emission_summary($year, $month = '%') {
     $conf_save = 0;
 
     foreach($conference AS $pid => $participant) {
-      $emission_data = emission_computing($participant['distance'], $participant['period']);
-      $conf_save += $emission_data['save'];
-      $sum_time_save += $participant['period'];
-      $conf_emission = $emission_data['vidconf_co2'];
+      $emission_data  = emission_computing($participant['distance'], $participant['period']);
+      $conf_save      += $emission_data['save'];
+      $sum_time_save  += $participant['period'];
+      $conf_emission  = $emission_data['vidconf_co2'];
     }
     $sum_GHG_emission_save += $conf_save;
   }
 
   $sum_GHG_emission_save = ceil( $sum_GHG_emission_save / 1000 );//from g to kg
   $sum_time_save = hours_and_minutes($sum_time_save);//from s to days,hours,minutes,secounds
-  $table_rows[] = array($sum_GHG_emission_save .t(' kg'), $sum_time_save);
+  $table_rows[] = array($numberofconf, $sum_GHG_emission_save .t(' kg'), $sum_time_save);
 
   if (!empty($table_rows)) {
     $output = theme_table($header, $table_rows, $attributes);
