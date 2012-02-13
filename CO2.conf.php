@@ -13,7 +13,7 @@ define('CO2_EMISSION_MCU', 1);
 define('CO2_EMISSION_VIDCONF_ENDPOINT', 1);
 
 //Vehicel distance limit in km
-define('DISTANCE_CAR', 300);
-define('DISTANCE_TRAIN', 500);
-define('DISTANCE_AEROPLANE', 800);
+define('CO2_DISTANCE_CAR', 300);
+define('CO2_DISTANCE_TRAIN', 500);
+define('CO2_DISTANCE_AEROPLANE', 800);
 

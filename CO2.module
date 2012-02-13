@@ -59,6 +59,14 @@ function co2_menu() {
     'weight'           => -10,
   );
 
+  $items['CO2/config'] = array(
+    'title'            => 'Setting parameters',
+    'type'             => MENU_LOCAL_TASK,
+    'page callback'    => 'parameters',
+    'access arguments' => array('CO2 show'),
+    'weight'           => 0,
+  );
+
   return $items;
 }
 
@@ -426,13 +434,13 @@ function emission_computing($party_dist, $conf_duration) {
  *   Vehicle GHG emission value in g/km.
  */
 function vehicle_co2($distance) {
-  if ($distance > 0 AND $distance <= DISTANCE_CAR) {
+  if ($distance > 0 AND $distance <= CO2_DISTANCE_CAR) {
     return CO2_EMISSION_CAR;
   }
-  elseif ($distance > DISTANCE_CAR AND $distance <= DISTANCE_TRAIN) {
+  elseif ($distance > CO2_DISTANCE_CAR AND $distance <= CO2_DISTANCE_TRAIN) {
     return CO2_EMISSION_TRAIN;
   }
-  elseif ($distance > DISTANCE_TRAIN AND $distance <= DISTANCE_AEROPLANE) {
+  elseif ($distance > CO2_DISTANCE_TRAIN AND $distance <= CO2_DISTANCE_AEROPLANE) {
     return CO2_EMISSION_AEROPLANE_800;
   }
   else {
@@ -558,4 +566,45 @@ function hours_and_minutes($seconds) {
   $time .= $display_second ? format_plural($display_seconds, '1 second', '@count seconds') : NULL;
 
   return $time;
+}
+
+/**
+ * Display the GHG emisson saving calculator konstans onto the web
+ *
+ * @return
+ *   HTML table with the parameter, its value and a short description.
+*/
+function parameters() {
+  $attributes = array('class' => 'GHG_emission_config');
+  $header = array(t('Configuration parameter name'), t('Value'), t('Description'));
+  $output = t('There is not any configuration parameters!');
+  $parameters = array();
+
+  $parameters_temp = get_defined_constants();
+  foreach($parameters_temp AS $key => $value) {
+    if (preg_match('/^CO2_.*$/', $key)) {
+      $table_rows[] = array($key, $value, parameter_help($key));
+    }
+  }
+
+  if (!empty($table_rows)) {
+    $output = theme_table($header, $table_rows, $attributes);
+  }
+
+  return $output;
+}
+
+/**
+ * Add help text for the module confog parameters
+ *
+ * @param string $parameter
+ *   Name of the config parameter
+ *
+ * @return
+ *   Give back the config parameter description in string or NULL if help not exists.
+ */
+function parameter_help($parameter) {
+  $help_text[] = array();
+
+  return $help_text[$parameter];
 }
