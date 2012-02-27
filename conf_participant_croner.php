@@ -39,9 +39,8 @@ function mcu_conf_selector() {
     $sql .= "caller_IP = '". $mcu ."' OR called_IP = '". $mcu ."' ";
   }
 
-  return $sql .')';
-
-  return " (called_GDS LIKE '". $mcu_gds[0] ."%' OR called_GDS LIKE '". $mcu_gds[1] ."%' OR called_GDS LIKE '". $mcu_gds[2] ."%' OR called_IP = '". $mcu_ip[0] ."' OR called_IP = '". $mcu_ip[1] ."' OR called_IP = '". $mcu_ip[2] ."')";
+  $sql .= ')';
+  return $sql;
 }
 
 function create_mcu_conference(&$link) {

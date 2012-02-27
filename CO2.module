@@ -257,12 +257,9 @@ function _confs_to_table(&$result) {
 
     $participants = participants_of_the_conference($cid);
 
-    foreach($participants AS  $participant) {
+    foreach($participants AS $participant) {
       $emission_data = emission_computing($participant['distance'], $participant['period']);
       $conf_save += $emission_data['save'];
-      $conf_emission = $emission_data['vidconf_co2'];
-      $conf_start_datetime = $participant['start_datetime'];
-      $conf_duration = $participant['duration'];
     }
     $table_rows[] = array(
       l($cid, 'CO2/conference/'.$cid),//link to the conference details

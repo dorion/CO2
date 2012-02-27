@@ -1,6 +1,7 @@
 <?php
 //DB handler
 require_once('db.inc.php');
+require_once('CO2.conf.php');
 
 /**
  * Resolve the distance and the duration time with google distance matrix API
@@ -42,7 +43,10 @@ function distance_and_time_resolver($start_point, $end_point) {
 
   if ($result['status'] === 'OK') {
     if ($result['rows'][0]['elements'][0]['status'] === 'OK') {
-      return array('distance' => $result['rows'][0]['elements'][0]['distance']['value'], 'duration' => $result['rows'][0]['elements'][0]['duration']['value']);
+      return array(
+        'distance' => $result['rows'][0]['elements'][0]['distance']['value'],
+        'duration' => $result['rows'][0]['elements'][0]['duration']['value'],
+      );
     }
     else {
       return $result['rows'][0]['elements'][0]['status'];
@@ -79,6 +83,22 @@ function distance_and_time_db_cache($src, $dst, &$link) {
   else {
     return FALSE;
   }
+}
+
+function coord_distance($start, $end) {
+  $delta_lat = $end['lat'] - $start['lat'];
+  $delta_lon = $end['lng'] - $start['lng'];
+
+  $earth_radius = 6372797.0; //in meter
+
+  $alpha  = $delta_lat / 2;
+  $beta   = $delta_lon / 2;
+  $a      = sin(deg2rad($alpha)) * sin(deg2rad($alpha)) + cos(deg2rad($start['lat'])) * cos(deg2rad($end['lat'])) * sin(deg2rad($beta)) * sin(deg2rad($beta));
+  $c      = asin(min(1, sqrt($a)));
+  $distance = 2 * $earth_radius * $c;
+  $distance = round($distance);
+
+  return $distance; //in meter
 }
 
 function resolve_distance() {
@@ -125,31 +145,38 @@ function resolve_distance() {
         $participant_location = array('lat' => $participant['lat'], 'lng' => $participant['lng']);
         if (!($dist_time = distance_and_time_db_cache($conf_location, $participant_location, &$link))) {
           $dist_time = distance_and_time_resolver($conf_location, $participant_location);
+
+          if ($dist_time === 'ZERO_RESULTS') {
+            $dist_time = absolute_distance($conf_location, $participant_location);
+          }
         }
         if (is_array($dist_time)) {
-          $sleep = 30;
           $sql = "UPDATE conf_part_trans
                   SET distance = ". $dist_time['distance'] .", period = ". $dist_time['duration'] ."
                   WHERE pid = ". $pid ." AND cid = ". $cid;
-          var_dump($sql);
-          var_dump(mysql_query($sql, $link));
+          print $sql ."\n";
+          mysql_query($sql, $link);
         }
         else {
-          if ($dist_time === 'OVER_QUERY_LIMIT') {
-    #        die($dist_time);
-/*            $sleep = 2 * $sleep;
-            print("Sleeping " . $sleep ." seconds\n");
-            sleep($sleep);*/
-          }
-          else {
-            var_dump($dist_time);
-          }
+          var_dump($dist_time);
         }
       }
     }
   }
 
   disconnect_sql(&$link);
+}
+
+function absolute_distance($start, $end) {
+  $dist = coord_distance($start, $end);
+  $time = round($dist / CO2_AVERAGE_SPEED_AEROPLANE);
+
+  if (is_float($dist) AND !empty($time)) {
+    return array('distance' => $dist, 'duration' => $time);
+  }
+  else {
+    return 'I can not calculate distance and duration!';
+  }
 }
 
 function _array_shift(&$array) {

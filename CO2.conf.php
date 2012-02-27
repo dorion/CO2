@@ -17,3 +17,5 @@ define('CO2_DISTANCE_CAR', 300);
 define('CO2_DISTANCE_TRAIN', 500);
 define('CO2_DISTANCE_AEROPLANE', 800);
 
+//Average speed for the time etimate
+define('CO2_AVERAGE_SPEED_AEROPLANE', 236); //m/s
