@@ -1,4 +1,4 @@
-= CO2 emission saving calculator from the videoconference logs
+= GHG emission saving calculator from the videoconference logs
 
 == Introducion
 
@@ -14,10 +14,51 @@ This project is an Drupal module and some helper PHP script, which are process C
 
 == How is works?
 
-Install the croner scripts, which are process the logs. The scripts separate and write to database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finaly it resolve the distance and the possibly travel time between the conference and the participants.
+Install the croner scripts, which are process the logs by the algorithm. The scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finaly it resolve the distance and the possibly travel time between the conference and the participants.
 
-After that the Drupal modul create CO emission save report in yearly and montly resolution.
+After that the Drupal modul create GHG emission save report in yearly and montly resolution.
 
+== Algorithm
+
+As the first step, we collect the conference log entries from various databases and consolidate them into a common data structure into a temporary database table.
+After prefiltering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later while preparing the reports.
+
+Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers.
+
+While filtering the data, calculating the derived values we are using the following algorithm:
+
+# Collect every information in a common format;
+# Drop all conference shorter than 5 minutes assuming that these were test calls and also narrow log records of only one gatekeeper.
+# Before processing drop log records of the VCR (Video Content Recorder)-
+# Than separate the peeer-to-peer, MCU conferences and the participants and create connection between them.
+  While (process every conference assuming that CONF_ID is a unique identifier):
+  if (the conference do not have more than one participant):
+    We can forget about this conference
+
+# Assign the location of the participants:
+    if (the IP or GDS of participant is known):
+      if (we know really specific location from our own register):
+        store location information into the participant record
+      else:
+        Find out the most exact location information and store it into the participant record (City or Country level information depending on the source: IP or GDS)
+    else:
+      We have no location information about the participant so we can forget about it. Remove Participant and the related Confernece-Participant connection from the database
+
+# Set the location, start_time and duration of the conference to a randomly chosen participant
+# Calculate the distance of every participants of this conference to its location and the time of the travel needed using Google Maps API
+# Since this query is limited the results are cached.
+# Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
+
+On a more precise way, the saved emission is equal to sum(distance of participants * vehicle specific emission) - (time of conference * CO2 emission of the central conference device + number of participants * time of conference *  CO2 emission of an average video conference endpoint device)
+
+When calculating vehicle dependent emission we are assuming that the following vehicles are used on different distances:
+distance vehicle
+0 - X car
+X - Y train
+Y - 800km airplane
+801km - inf. airplane 800+ km
+
+X, Y and the other constants are parameters of the algorithm!
 
 == Installing
 
