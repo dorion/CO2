@@ -86,10 +86,10 @@ On a more precise way, the saved emission is equal to sum(distance of participan
 
 When calculating vehicle dependent emission we are assuming that the following vehicles are used on different distances:
 distance vehicle
-0 - X car
-X - Y train
-Y - 800 km airplane
-801 km - inf. airplane 800+ km
+    0 - X car
+    X - Y train
+    Y - 800 km airplane
+    801 km - inf. airplane 800+ km
 
 X, Y and the other constants are parameters of the algorithm!
 
@@ -111,20 +111,20 @@ and whit special permission
 === Install the Drupal CO2 module
 
 ----------
-cd /your/drupal_root/sites/all/modules
-git clone git://github.com/dorion/CO2.git
+    cd /your/drupal_root/sites/all/modules
+    git clone git://github.com/dorion/CO2.git
 ----------
 
 After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
 
 === Configure cron jobs
 ----------
-crontab -e
+    crontab -e
 
-MAILTO=youremail@example.com
-1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
+    MAILTO=youremail@example.com
+    1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
+    5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
+    5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
 ----------
 
 === Create database structure
@@ -132,46 +132,46 @@ MAILTO=youremail@example.com
 Here is the database schema:
 
 ----------
-CREATE TABLE conf (
-  cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
-  start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
-  duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
-  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
-  PRIMARY KEY (cid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    CREATE TABLE conf (
+      cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
+      start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
+      duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
+      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      PRIMARY KEY (cid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE conf_part_trans (
-  cid int(10) unsigned NOT NULL,
-  pid int(10) unsigned NOT NULL,
-  distance double unsigned DEFAULT NULL,
-  period int(10) unsigned DEFAULT NULL,
-  PRIMARY KEY (cid,pid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    -- --------------------------------------------------------
+    CREATE TABLE conf_part_trans (
+      cid int(10) unsigned NOT NULL,
+      pid int(10) unsigned NOT NULL,
+      distance double unsigned DEFAULT NULL,
+      period int(10) unsigned DEFAULT NULL,
+      PRIMARY KEY (cid,pid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE participant (
-  pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
-  GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
-  IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
-  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
-  PRIMARY KEY (pid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    -- --------------------------------------------------------
+    CREATE TABLE participant (
+      pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
+      GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
+      IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
+      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      PRIMARY KEY (pid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE temp_log (
-  ID int(10) unsigned NOT NULL AUTO_INCREMENT,
-  conf_id varchar(100) COLLATE utf8_unicode_ci NOT NULL,
-  start_datetime datetime NOT NULL,
-  duration int(10) unsigned NOT NULL COMMENT 'Duration in second',
-  caller_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  called_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (ID)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
+    -- --------------------------------------------------------
+    CREATE TABLE temp_log (
+      ID int(10) unsigned NOT NULL AUTO_INCREMENT,
+      conf_id varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+      start_datetime datetime NOT NULL,
+      duration int(10) unsigned NOT NULL COMMENT 'Duration in second',
+      caller_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      called_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      PRIMARY KEY (ID)
+    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
 
 ----------
 
