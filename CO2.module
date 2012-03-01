@@ -311,6 +311,7 @@ function view_participants($cid) {
   $header = array(t('Participant ID'), t('Suspected GHG emission (kg)'), t('GHG emission saving (kg)'), t('Working hours savings'));
   $output = t('There is not participant!');
   $table_rows = array();
+  $extra_data = user_access('CO2 show extra data');
 
   $sql = "SELECT
             p.pid, cpt.distance, cpt.period, p.latitude, p.longitude, c.latitude AS conf_lat, c.longitude AS conf_lng
@@ -352,7 +353,7 @@ function view_participants($cid) {
       round($emission_data['save'] / 1000, 2),
       hours_and_minutes($participant['period'])
     );
-    if (user_access('CO2 show extra data')) {
+    if ($extra_data) {
       array_push($table_rows[$key], $participant['latitude']);
       array_push($table_rows[$key], $participant['longitude']);
       $origins      .= 'new google.maps.LatLng('. $conf_coordinate['lat'] .', '. $conf_coordinate['lng'] .'), ';
@@ -365,12 +366,16 @@ function view_participants($cid) {
   $destinations .= ']';
 
   if (!empty($table_rows)) {
-    if (user_access('CO2 show extra data')) {
+    if ($extra_data) {
       $header[] = t('Latitude');
       $header[] = t('Longitude');
     }
     $output = theme_table($header, $table_rows, $attributes);
-    $output .= theme('GHG_emission_map', $origins, $destinations);
+
+    //check the user can see the extra participant daza
+    if ($extra_data) {
+      $output .= theme('GHG_emission_map', $origins, $destinations);
+    }
   }
 
 return $output;
