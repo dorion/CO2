@@ -27,15 +27,15 @@ Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own ide
 
 While filtering the data, calculating the derived values we are using the following algorithm:
 
-# Collect every information in a common format;
-# Drop all conference shorter than 5 minutes assuming that these were test calls and also narrow log records of only one gatekeeper.
-# Before processing drop log records of the VCR (Video Content Recorder)-
-# Than separate the peeer-to-peer, MCU conferences and the participants and create connection between them.
+1. Collect every information in a common format;
+2. Drop all conference shorter than 5 minutes assuming that these were test calls and also narrow log records of only one gatekeeper.
+3. Before processing drop log records of the VCR (Video Content Recorder)-
+4. Than separate the peeer-to-peer, MCU conferences and the participants and create connection between them.
   While (process every conference assuming that CONF_ID is a unique identifier):
   if (the conference do not have more than one participant):
     We can forget about this conference
 
-# Assign the location of the participants:
+5. Assign the location of the participants:
     if (the IP or GDS of participant is known):
       if (we know really specific location from our own register):
         store location information into the participant record
@@ -44,41 +44,87 @@ While filtering the data, calculating the derived values we are using the follow
     else:
       We have no location information about the participant so we can forget about it. Remove Participant and the related Confernece-Participant connection from the database
 
-# Set the location, start_time and duration of the conference to a randomly chosen participant
-# Calculate the distance of every participants of this conference to its location and the time of the travel needed using Google Maps API
-# Since this query is limited the results are cached.
-# Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
+6. Set the location, start_time and duration of the conference to a randomly chosen participant
+7. Calculate the distance of every participants of this conference to its location and the time of the travel needed using Google Maps API
+8. Since this query is limited the results are cached.
+9. Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
+
+
+=== Filtering
+
+On my organization we collet the all gatekeepers CDR record in a common table. 
+So before log parsing we have to filter the intput data:
+ 1. first select record of olny one gatekeeper
+ 2. then drop the short conference (less then 5 minutes)
+ 3. after that drop the VCR (Video Content Recorder) records
+ 4. and finaly insert this records into the temp_log table.
+
+=== Conference and participant unstick
+
+In the begining separete the mcu conference and the participants of this type of conferece. Create the participants per conference and add a conference. In this time we olny know participant's GDS number or/and IP number. About the conference generaly know only start date and time and the conference duration what we calculate from the partisicpant first connetion time and the last disconnection time. At teh end of the process we have to make connection between participants and conference with a transfer table.
+
+=== Location resolver
+
+When we have participants we need resolve them location. In this action we used the own only hungarian GDS number-location database if there was GDS number. Or only there was IP number we used freegeoip.com IP-to-coordinate API. So the location accuracy is very divers.
+
+=== Distance and duration resolver
+
+After or paralel with described in the previous tow paragraphs processes we can start resolve distance and the duration. What would we do this before must be nominated by the conference venue. It will be the first connected participant's location.
+
+We used Google Maps Distance matrix API to provide distance and the duration of the trip. This webservice provide distance between two point on the map on the road network. The API can calculate distance in only three mode walking, bicycling and driving (with car). But some cases we do not get back values for example the origin and the destination are not on same continet or the map is incomplete. In this case we figure the tow point absolute distane eachother and we try estime the duration of the journey.
+
+Google API has a many limitations:
+100 elements per query.
+100 elements per 10 seconds.
+2 500 elements per 24 hour period.
+
+For this reasons and optimatizaton, speed-up effort forcing us the reuse the previus A to B and B to A ponits reach as a cache.
+
+=== GHG saving calculator
 
 On a more precise way, the saved emission is equal to sum(distance of participants * vehicle specific emission) - (time of conference * CO2 emission of the central conference device + number of participants * time of conference *  CO2 emission of an average video conference endpoint device)
 
 When calculating vehicle dependent emission we are assuming that the following vehicles are used on different distances:
 distance vehicle
-0 - X car
-X - Y train
-Y - 800km airplane
-801km - inf. airplane 800+ km
+    0 - X car
+    X - Y train
+    Y - 800 km airplane
+    801 km - inf. airplane 800+ km
 
 X, Y and the other constants are parameters of the algorithm!
 
-== Installing
+=== Visualizer
+
+This is a very simple Drupal module which serve two resolution of the GHG saving report montly and yearly. In the forst case we have to given the year and the month and the secound case we have to given only the year. Both two case give back a paged list of the conferences and above this list there is a summary to the specified period. In the list show the conference ID, conference start date time, conference duration and the GHG emission save in kg ot ton.
+
+Clicking on the conference ID we can show the participants of the conferene and their detailed data such as:
+* participant ID
+* Suspected GHG emission
+* GHG emission saving
+* Working hours savings
+and whit special permission
+* coordinates
+* show on Google map
+
+== Install
 
 === Install the Drupal CO2 module
 
 ----------
-cd /your/drupal_root/sites/all/modules
-git clone git://github.com/dorion/CO2.git
+    cd /your/drupal_root/sites/all/modules
+    git clone git://github.com/dorion/CO2.git
 ----------
 
 After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
 
 === Configure cron jobs
 ----------
-crontab -e
+    crontab -e
 
-MAILTO=youremail@example.com
-1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
+    MAILTO=youremail@example.com
+    1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
+    5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
+    5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
 ----------
 
 === Create database structure
@@ -86,46 +132,46 @@ MAILTO=youremail@example.com
 Here is the database schema:
 
 ----------
-CREATE TABLE conf (
-  cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
-  start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
-  duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
-  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
-  PRIMARY KEY (cid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    CREATE TABLE conf (
+      cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
+      start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
+      duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
+      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      PRIMARY KEY (cid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE conf_part_trans (
-  cid int(10) unsigned NOT NULL,
-  pid int(10) unsigned NOT NULL,
-  distance double unsigned DEFAULT NULL,
-  period int(10) unsigned DEFAULT NULL,
-  PRIMARY KEY (cid,pid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    -- --------------------------------------------------------
+    CREATE TABLE conf_part_trans (
+      cid int(10) unsigned NOT NULL,
+      pid int(10) unsigned NOT NULL,
+      distance double unsigned DEFAULT NULL,
+      period int(10) unsigned DEFAULT NULL,
+      PRIMARY KEY (cid,pid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE participant (
-  pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
-  GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
-  IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
-  latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-  longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
-  PRIMARY KEY (pid)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    -- --------------------------------------------------------
+    CREATE TABLE participant (
+      pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
+      GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
+      IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
+      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
+      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      PRIMARY KEY (pid)
+    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
--- --------------------------------------------------------
-CREATE TABLE temp_log (
-  ID int(10) unsigned NOT NULL AUTO_INCREMENT,
-  conf_id varchar(100) COLLATE utf8_unicode_ci NOT NULL,
-  start_datetime datetime NOT NULL,
-  duration int(10) unsigned NOT NULL COMMENT 'Duration in second',
-  caller_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  called_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (ID)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
+    -- --------------------------------------------------------
+    CREATE TABLE temp_log (
+      ID int(10) unsigned NOT NULL AUTO_INCREMENT,
+      conf_id varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+      start_datetime datetime NOT NULL,
+      duration int(10) unsigned NOT NULL COMMENT 'Duration in second',
+      caller_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      called_GDS varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+      PRIMARY KEY (ID)
+    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
 
 ----------
 
