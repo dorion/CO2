@@ -284,7 +284,7 @@ function participants_of_the_conference($cid) {
         ON
           c.cid = cpt.cid AND p.pid = cpt.pid
         WHERE
-          c.cid = %s";
+          c.cid = %d";
 
   db_set_active('co2');
   $result = db_query($sql, $cid);
