@@ -49,10 +49,11 @@ While filtering the data, calculating the derived values we are using the follow
 8. Since this query is limited the results are cached.
 9. Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
 
+=== Input format
+In our organization collect CDR into MySQL tables. So we easily filter and convert to the input format which is same as templ_log table schema. Afterward we process this database records not the original ones. For these reasons, if someone want to use this application he os she can convert his/her log entries to this format and insert into temp_log table. There is not import API os interface yet. This conversion is manual.
 
 === Filtering
 
-On my organization we collet the all gatekeepers CDR record in a common table. 
 So before log parsing we have to filter the intput data:
  1. first select record of olny one gatekeeper
  2. then drop the short conference (less then 5 minutes)
