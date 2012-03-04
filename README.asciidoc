@@ -1,27 +1,28 @@
-= GHG emission saving calculator from the videoconference logs
+= GHG emission saving calculator from the video conference logs
 
-== Introducion
+== Introduction
 
-This project is an Drupal module and some helper PHP script, which are process CDR log messages to define CO2 emission save of the videoconference units.
+This project is an Drupal module and some helper cli PHP script, which are process CDR log messages to define GHG emission save of the video conference units.
 
 == Features
 
-* filter the original log messages
+* filter the original log messages from MySQL database
 * separate the conferences and the participants from the CDR messages
-* resolve locations by GDS number or IP
-* resolve distance and possible travel time whit Google distance API
-* create table base CO2 emission save report
+* resolve participant locations by GDS number or IP address
+* resolve distance and possible travel time with Google distance API between conferences and participant
+* create table base CO2 emission save report monthly and yearly resolution
+* show participant GHG emission saving per conference
 
 == How is works?
 
-Install the croner scripts, which are process the logs by the algorithm. The scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finaly it resolve the distance and the possibly travel time between the conference and the participants.
+Install the croner scripts, which are process the logs by the algorithm. The scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finally it resolve the distance and the possibly travel time between the conference and the participants.
 
-After that the Drupal modul create GHG emission save report in yearly and montly resolution.
+After that the Drupal module create GHG emission save report in yearly and monthly resolution.
 
 == Algorithm
 
 As the first step, we collect the conference log entries from various databases and consolidate them into a common data structure into a temporary database table.
-After prefiltering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later while preparing the reports.
+After pre filtering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later while preparing the reports.
 
 Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers.
 
@@ -30,7 +31,7 @@ While filtering the data, calculating the derived values we are using the follow
 1. Collect every information in a common format;
 2. Drop all conference shorter than 5 minutes assuming that these were test calls and also narrow log records of only one gatekeeper.
 3. Before processing drop log records of the VCR (Video Content Recorder)-
-4. Than separate the peeer-to-peer, MCU conferences and the participants and create connection between them.
+4. Than separate the peer-to-peer, MCU conferences and the participants and create connection between them.
   While (process every conference assuming that CONF_ID is a unique identifier):
   if (the conference do not have more than one participant):
     We can forget about this conference
@@ -42,7 +43,7 @@ While filtering the data, calculating the derived values we are using the follow
       else:
         Find out the most exact location information and store it into the participant record (City or Country level information depending on the source: IP or GDS)
     else:
-      We have no location information about the participant so we can forget about it. Remove Participant and the related Confernece-Participant connection from the database
+      We have no location information about the participant so we can forget about it. Remove Participant and the related confernece-participant connection from the database
 
 6. Set the location, start_time and duration of the conference to a randomly chosen participant
 7. Calculate the distance of every participants of this conference to its location and the time of the travel needed using Google Maps API
@@ -50,36 +51,36 @@ While filtering the data, calculating the derived values we are using the follow
 9. Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
 
 === Input format
-In our organization collect CDR into MySQL tables. So we easily filter and convert to the input format which is same as templ_log table schema. Afterward we process this database records not the original ones. For these reasons, if someone want to use this application he os she can convert his/her log entries to this format and insert into temp_log table. There is not import API os interface yet. This conversion is manual.
+In our organization collect CDR into MySQL tables. So we easily filter and convert to the input format which is same as templ_log table schema. Afterwards we process this database records not the original ones. For these reasons, if someone want to use this application he or she can convert his/her log entries to this format and insert into temp_log table. There is not import API or interface yet. This conversion is manual.
 
 === Filtering
 
-So before log parsing we have to filter the intput data:
- 1. first select record of olny one gatekeeper
+So before log parsing we have to filter the input data:
+ 1. first select record of only one gatekeeper
  2. then drop the short conference (less then 5 minutes)
  3. after that drop the VCR (Video Content Recorder) records
- 4. and finaly insert this records into the temp_log table.
+ 4. and finally insert this records into the temp_log table.
 
 === Conference and participant unstick
 
-In the begining separete the mcu conference and the participants of this type of conferece. Create the participants per conference and add a conference. In this time we olny know participant's GDS number or/and IP number. About the conference generaly know only start date and time and the conference duration what we calculate from the partisicpant first connetion time and the last disconnection time. At teh end of the process we have to make connection between participants and conference with a transfer table.
+In the beginning separate the MCU conference and the participants of this type of conference. Create the participants per conference and add a conference. In this time we only know participant's GDS number or/and IP number. About the conference generally know only start date and time and the conference duration what we calculate from the participant first connection time and the last disconnection time. At the end of the process we have to make connection between participants and conference with a transfer table.
 
 === Location resolver
 
-When we have participants we need resolve them location. In this action we used the own only hungarian GDS number-location database if there was GDS number. Or only there was IP number we used freegeoip.com IP-to-coordinate API. So the location accuracy is very divers.
+When we have participants we need resolve them location. In this action we used the own only Hungarian GDS number-location database if there was GDS number. Or only there was IP number we used freegeoip.com IP-to-coordinate API. So the location accuracy is very divers.
 
 === Distance and duration resolver
 
-After or paralel with described in the previous tow paragraphs processes we can start resolve distance and the duration. What would we do this before must be nominated by the conference venue. It will be the first connected participant's location.
+After or parallel with described in the previous tow paragraphs processes we can start resolve distance and the duration. What would we do this before must be nominated by the conference venue. It will be the first connected participant's location.
 
-We used Google Maps Distance matrix API to provide distance and the duration of the trip. This webservice provide distance between two point on the map on the road network. The API can calculate distance in only three mode walking, bicycling and driving (with car). But some cases we do not get back values for example the origin and the destination are not on same continet or the map is incomplete. In this case we figure the tow point absolute distane eachother and we try estime the duration of the journey.
+We used Google Maps Distance matrix API to provide distance and the duration of the trip. This web-service provide distance between two point on the map on the road network. The API can calculate distance in only three mode walking, bicycling and driving (with car). But some cases we do not get back values for example the origin and the destination are not on same continent or the map is incomplete. In this case we figure the tow point absolute distance each other and we try estimate the duration of the journey.
 
 Google API has a many limitations:
 100 elements per query.
 100 elements per 10 seconds.
 2 500 elements per 24 hour period.
 
-For this reasons and optimatizaton, speed-up effort forcing us the reuse the previus A to B and B to A ponits reach as a cache.
+For this reasons and optimization, speed-up effort forcing us the reuse the previous A to B and B to A points reach as a cache.
 
 === GHG saving calculator
 
@@ -89,16 +90,16 @@ When calculating vehicle dependent emission we are assuming that the following v
 distance vehicle
     0 - X car
     X - Y train
-    Y - 800 km airplane
-    801 km - inf. airplane 800+ km
+    Y - 800 km air-plane
+    801 km - infinity aeroplane 800+ km
 
 X, Y and the other constants are parameters of the algorithm!
 
 === Visualizer
 
-This is a very simple Drupal module which serve two resolution of the GHG saving report montly and yearly. In the forst case we have to given the year and the month and the secound case we have to given only the year. Both two case give back a paged list of the conferences and above this list there is a summary to the specified period. In the list show the conference ID, conference start date time, conference duration and the GHG emission save in kg ot ton.
+This is a very simple Drupal module which serve two resolution of the GHG saving report monthly and yearly. In the first case we have to given the year and the month and the second case we have to given only the year. Both two case give back a paged list of the conferences and above this list there is a summary to the specified period. In the list show the conference ID, conference start date time, conference duration and the GHG emission save in kg or ton.
 
-Clicking on the conference ID we can show the participants of the conferene and their detailed data such as:
+Clicking on the conference ID we can show the participants of the conference and their detailed data such as:
 * participant ID
 * Suspected GHG emission
 * GHG emission saving
@@ -116,9 +117,22 @@ and whit special permission
     git clone git://github.com/dorion/CO2.git
 ----------
 
+Add the following lines to the Drupal settings.php:
+----------
+ $db_url = array(
+             'default' => 'mysqli://drupal_db_user:password@sqlserver/drupal_database',
+             'co2'     => 'mysqli://co2_db_user:password@sqlserver/co2_database',
+           );
+----------
+
+Naturally you have to change the db_user names, password, sql server and the database names.
+
 After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
 
 === Configure cron jobs
+
+The processor script written in PHP but they have not got any output. Because this scripts run with cli PHP in the background. The PHP is a script program language so we have to call with manually or can be automated with cron. See the crontab file content below:
+
 ----------
     crontab -e
 
@@ -134,30 +148,30 @@ Here is the database schema:
 
 ----------
     CREATE TABLE conf (
-      cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Konferencia új ID-ja',
-      start_datetime datetime DEFAULT NULL COMMENT 'A konferencia kezdő időpontja',
-      duration int(10) unsigned DEFAULT NULL COMMENT 'A konferencia hossza óra:perc:másodperc',
-      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      cid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Conference new ID',
+      start_datetime datetime DEFAULT NULL COMMENT 'Conference start date and time',
+      duration int(10) unsigned DEFAULT NULL COMMENT 'Conference duration',
+      latitude double DEFAULT NULL COMMENT 'Latitude',
+      longitude double DEFAULT NULL COMMENT 'Longitude',
       PRIMARY KEY (cid)
     ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
     -- --------------------------------------------------------
     CREATE TABLE conf_part_trans (
-      cid int(10) unsigned NOT NULL,
-      pid int(10) unsigned NOT NULL,
-      distance double unsigned DEFAULT NULL,
-      period int(10) unsigned DEFAULT NULL,
+      cid int(10) unsigned NOT NULL COMMENT 'Conference ID',
+      pid int(10) unsigned NOT NULL COMMENT 'Participant ID',
+      distance double unsigned DEFAULT NULL COMMENT 'Distance between the confernce palce and the participant',
+      period int(10) unsigned DEFAULT NULL COMMENT 'The calculated journey duration.',
       PRIMARY KEY (cid,pid)
     ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
     -- --------------------------------------------------------
     CREATE TABLE participant (
-      pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'A résztvevő azonosítója',
-      GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS szám ha van',
-      IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP ha van',
-      latitude double DEFAULT NULL COMMENT 'Szélességi koordináta',
-      longitude double DEFAULT NULL COMMENT 'Hosszúsági koordináta',
+      pid int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Participant ID',
+      GDS varchar(20) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'GDS number if it exists',
+      IP varchar(100) COLLATE utf8_hungarian_ci DEFAULT NULL COMMENT 'IP number is ot exists',
+      latitude double DEFAULT NULL COMMENT 'Latitude',
+      longitude double DEFAULT NULL COMMENT 'Longitude',
       PRIMARY KEY (pid)
     ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -175,6 +189,10 @@ Here is the database schema:
     ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
 
 ----------
+
+== Future development possibility
+
+
 
 == Implementation Remarks
 
