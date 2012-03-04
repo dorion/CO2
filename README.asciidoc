@@ -24,7 +24,7 @@ After that the Drupal module create GHG emission save report in yearly and month
 As the first step, we collect the conference log entries from various databases and consolidate them into a common data structure into a temporary database table.
 After pre filtering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later while preparing the reports.
 
-Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers. In the process almos the all personal data.
+Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers. In the process almost the all personal data.
 
 While filtering the data, calculating the derived values we are using the following algorithm:
 
@@ -54,12 +54,12 @@ While filtering the data, calculating the derived values we are using the follow
 
 In our organization collect CDR into MySQL tables. So we easily filter and convert to the input format which is same as templ_log table schema:
 * conf_id char (100): identifier of a conference
-* start_datetime datetime: when the conference was start
+* start_datetime date time: when the conference was start
 * duration integer (10): conference duration in second
 * caller_GDS char (100): caller's GDS number if it exists
 * called_GDS char (100): called's GDS number if it exists
 * caller_IP char (100): caller's IP address if it exists
-* called_IP cahr (100): called's IP address if it exists
+* called_IP char (100): called's IP address if it exists
 
 Afterwards we process this database records not the original ones. For these reasons, if someone want to use this application he/she can convert his/her log entries to this format and insert into temp_log table.
 
@@ -78,8 +78,8 @@ So before log parsing we have to filter the input data:
 === Conference and participant unstick
 
 In the beginning separate the MCU conference and the participants of this type of conference. The procedure is as follow:
-1. Select all records from temp_log table where the called IP, called GDS, the caller IP or the calles GDS belong to MCU
-2. Than grouped these record by date and gds number, these are the conferences, store them into conf table
+1. Select all records from temp_log table where the called IP, called GDS, the caller IP or the caller GDS belong to MCU
+2. Than grouped these record by date and GDS number, these are the conferences, store them into conf table
 3. That groups containing the participant, so we can store into the participant table
 4. After participants storing, we can create connection between the conferences and the participants
 5. Finally delete the processed records
@@ -155,7 +155,7 @@ CO2_EMISSION_TRAIN: average Hungarian train GHG emission in g/km
 CO2_EMISSION_AEROPLANE_800: average aeroplane GHG emission under 800km in g/km
 CO2_EMISSION_AEROPLANE_800_PLUS: average aeroplane GHG emission over 800km g/km
 CO2_EMISSION_MCU: MCU GHG emission in g/s
-CO2_EMISSION_GATEKEEPER: gatekeeper GHG emisson in g/s
+CO2_EMISSION_GATEKEEPER: gatekeeper GHG emission in g/s
 CO2_EMISSION_VIDCONF_ENDPOINT: video conference endpoint GHG emission in g/s
 CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY: video conference endpoint display GHG emission in g/s
 CO2_DISTANCE_CAR: maximal distance value when we calculate with car GHG emission value in km
@@ -249,7 +249,7 @@ Here is the database schema:
 
 * Report narrow to regions or organisations
 * Optional cost calculating (need more data)
-* Export reports to PDF, cvs, xls format
+* Export reports to PDF, csv, xls format
 
 == Implementation Remarks
 
