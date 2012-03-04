@@ -255,9 +255,10 @@ function _confs_to_table(&$result) {
     $conf_duration = NULL;
 
     $participants = participants_of_the_conference($cid);
+    $part_num = count($participants);
 
     foreach($participants AS $participant) {
-      $emission_data = emission_computing($participant['distance'], $participant['period']);
+      $emission_data = emission_computing($participant['distance'], $participant['period'], $part_num);
       $conf_save += $emission_data['save'];
     }
 
@@ -343,8 +344,9 @@ function view_participants($cid) {
 
   $origins      = '[';
   $destinations = '[';
+  $part_num = count($rows);
   foreach($rows AS $key => $participant) {
-    $emission_data = emission_computing($participant['distance'], $participant['period']);
+    $emission_data = emission_computing($participant['distance'], $participant['period'], $part_num);
     $conf_save += $emission_data['save'];
     $conf_emission = $emission_data['vidconf_co2'];
     $table_rows[$key] = array(
@@ -414,11 +416,11 @@ function avaiable_years() {
  *   the vehicle GHG emission(key: vehicle_co2)
  *   and the vidconf equipments GHG emission(key: vidconf_co2).
  */
-function emission_computing($party_dist, $conf_duration) {
+function emission_computing($party_dist, $conf_duration, $part_num) {
   $save = 0;
 
   $vehicle_co2 = vehicle_co2($party_dist);
-  $vidconf_env_co2 = vidconf_env_co2();
+  $vidconf_env_co2 = vidconf_env_co2($part_num);
   $vehicle_emission = ( $party_dist / 1000 ) * $vehicle_co2 * 2; //round-trip vehicle CO2 emission in gramm
   $vidconf_emission = $conf_duration * $vidconf_env_co2; //CO2 emission in gramm
   $save = $vehicle_emission - $vidconf_emission;
@@ -456,8 +458,13 @@ function vehicle_co2($distance) {
  * @return
  *   Amount of the MCU and the endpoints GHG emission in g/hour.
  */
-function vidconf_env_co2() {
-  return CO2_EMISSION_MCU + CO2_EMISSION_VIDCONF_ENDPOINT;
+function vidconf_env_co2($part_num = 2) {
+  if ($part_num > 2) {
+    return ((CO2_EMISSION_MCU + CO2_EMISSION_GATEKEEPER) / $part_num) + CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY + CO2_EMISSION_VIDCONF_ENDPOINT;
+  }
+  elseif($part_num === 2) {
+    return CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY + CO2_EMISSION_VIDCONF_ENDPOINT + (CO2_EMISSION_GATEKEEPER / $part_num);
+  }
 }
 
 /**
@@ -518,9 +525,10 @@ function emission_summary($year, $month = '%') {
   $sum_time_save = 0;
   foreach($rows AS $cid => $conference) {
     $conf_save = 0;
+    $part_num = count($conference);
 
     foreach($conference AS $pid => $participant) {
-      $emission_data  = emission_computing($participant['distance'], $participant['period']);
+      $emission_data  = emission_computing($participant['distance'], $participant['period'], $part_num);
       $conf_save      += $emission_data['save'];
       $sum_time_save  += $participant['period'];
       $conf_emission  = $emission_data['vidconf_co2'];
