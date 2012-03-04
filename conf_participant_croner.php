@@ -100,7 +100,7 @@ function create_mcu_conference(&$link) {
 }
 
 function create_point_to_point_conference(&$link) {
-  $select_sql = 'SELECT * FROM temp_log WHERE NOT '. mcu_conf_selector();//." LIMIT 100";
+  $select_sql = 'SELECT * FROM temp_log WHERE NOT '. mcu_conf_selector();
   $result = mysql_query($select_sql, $link);
 
   while ($row = mysql_fetch_assoc($result)) {
