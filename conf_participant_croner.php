@@ -83,11 +83,14 @@ function create_mcu_conference(&$link) {
           $end = $participant['end_time'];
         }
 
-        $parties[] = create_participant($participant['id'], $participant['gds'], $participant['ip'], &$link);
+        $pid = create_participant($participant['id'], $participant['gds'], $participant['ip'], &$link);
+        if ($pid) {
+          $parties[] = $pid;
+        }
       }
 
       $conf_duration = $end - $start;
-      $conf_start_datetime = date('Y-m-d H:i:s');
+      $conf_start_datetime = date('Y-m-d H:i:s', $start);
 
       $conf_id = create_conf($conf_start_datetime, $conf_duration, &$link);
 
@@ -143,7 +146,7 @@ function create_participant($temp_log_id, $gds, $ip, &$link) {
   $party = mysql_fetch_assoc(mysql_query($sql, $link));
   if (!empty($party)) {
     temp_table_cleaner($temp_log_id, &$link);
-    return $party['pid'];
+    return (int) $party['pid'];
   }
   else {
     $sql = "INSERT INTO participant (GDS, IP) VALUES ('". $gds ."', '". $ip ."')";
