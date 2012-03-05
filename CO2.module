@@ -419,11 +419,11 @@ function avaiable_years() {
 function emission_computing($party_dist, $conf_duration, $part_num) {
   $save = 0;
 
-  $vehicle_co2 = vehicle_co2($party_dist);
-  $vidconf_env_co2 = vidconf_env_co2($part_num);
+  $vehicle_co2      = vehicle_co2($party_dist);
+  $vidconf_env_co2  = vidconf_env_co2($part_num);
   $vehicle_emission = ( $party_dist / 1000 ) * $vehicle_co2 * 2; //round-trip vehicle CO2 emission in gramm
   $vidconf_emission = $conf_duration * $vidconf_env_co2; //CO2 emission in gramm
-  $save = $vehicle_emission - $vidconf_emission;
+  $save             = $vehicle_emission - $vidconf_emission;
 
   return array('save' => $save, 'vehicle_co2' => $vehicle_emission, 'vidconf_co2' => $vidconf_emission);
 }
@@ -432,12 +432,13 @@ function emission_computing($party_dist, $conf_duration, $part_num) {
  * Give back the vehicle GHG emission based on the distance in g/km
  *
  * @param $distance
- *   Distance in km.
+ *   Distance in meter.
  *
  * @return
  *   Vehicle GHG emission value in g/km.
  */
 function vehicle_co2($distance) {
+  $distance = $distance / 1000;
   if ($distance > 0 AND $distance <= CO2_DISTANCE_CAR) {
     return CO2_EMISSION_CAR;
   }
@@ -447,8 +448,11 @@ function vehicle_co2($distance) {
   elseif ($distance > CO2_DISTANCE_TRAIN AND $distance <= CO2_DISTANCE_AEROPLANE) {
     return CO2_EMISSION_AEROPLANE_800;
   }
-  else {
+  elseif ($distance > CO2_DISTANCE_AEROPLANE) {
     return CO2_EMISSION_AEROPLANE_800_PLUS;
+  }
+  else {
+    return 0;
   }
 }
 

@@ -9,10 +9,10 @@ define('CO2_EMISSION_CAR', 176); // g/km
 define('CO2_EMISSION_TRAIN', 60); // g/km
 define('CO2_EMISSION_AEROPLANE_800', 160); // g/km
 define('CO2_EMISSION_AEROPLANE_800_PLUS', 100); // g/km
-define('CO2_EMISSION_MCU', 308); // g/s
-define('CO2_EMISSION_GATEKEEPER', 63); // g/s
-define('CO2_EMISSION_VIDCONF_ENDPOINT', 26); // g/s
-define('CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY', 42); // g/s
+define('CO2_EMISSION_MCU', 0.0856); // g/s
+define('CO2_EMISSION_GATEKEEPER', 0.0176); // g/s
+define('CO2_EMISSION_VIDCONF_ENDPOINT', 0.0073); // g/s
+define('CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY', 0.0117); // g/s
 
 //Vehicel distance limit in km
 define('CO2_DISTANCE_CAR', 300);
