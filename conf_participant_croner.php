@@ -107,6 +107,7 @@ function create_point_to_point_conference(&$link) {
   $result = mysql_query($select_sql, $link);
 
   while ($row = mysql_fetch_assoc($result)) {
+    $parties = array();
     $parties[] = create_participant($row['ID'], $row['caller_GDS'], $row['caller_IP'], &$link);
     $parties[] = create_participant($row['ID'], $row['called_GDS'], $row['called_IP'], &$link);
 

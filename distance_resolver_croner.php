@@ -127,7 +127,6 @@ function resolve_distance() {
               AND (cpt.distance IS NULL OR cpt.period IS NULL)
               AND c.cid = ". $cid ."
             ";
-
     $result = mysql_query($sql, $db_link);
     while ($row = mysql_fetch_assoc($result)) {
       $conf_part[$row['cid']][$row['pid']] = array('lat' => $row['latitude'], 'lng' => $row['longitude']);
@@ -138,17 +137,23 @@ function resolve_distance() {
     foreach($conf_part AS $cid => $participants) {
       //set up conference location by a random participant
       $conf_location = conf_location(&$participants, $cid, &$db_link);
-      var_dump($conf_location);
 
       foreach($participants AS $pid => $participant) {
         $participant_location = array('lat' => $participant['lat'], 'lng' => $participant['lng']);
-        if (!($dist_time = distance_and_time_db_cache($conf_location, $participant_location, &$db_link))) {
-          $dist_time = distance_and_time_resolver($conf_location, $participant_location);
 
-          if ($dist_time === 'ZERO_RESULTS') {
-            $dist_time = absolute_distance($conf_location, $participant_location);
+        if ($participant_location['lat'] == $conf_location['lng'] AND $participant_location['lng'] == $conf_location['lng']) {
+         $dist_time = array('distance' => 0, 'duration' => 0);
+        }
+        else {
+          if (!($dist_time = distance_and_time_db_cache($conf_location, $participant_location, &$db_link))) {
+            $dist_time = distance_and_time_resolver($conf_location, $participant_location);
+
+            if ($dist_time === 'ZERO_RESULTS') {
+              $dist_time = absolute_distance($conf_location, $participant_location);
+            }
           }
         }
+
         if (is_array($dist_time)) {
           $sql = "UPDATE conf_part_trans
                   SET distance = ". $dist_time['distance'] .", period = ". $dist_time['duration'] ."
