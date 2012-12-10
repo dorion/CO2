@@ -193,9 +193,7 @@ The processor script written in PHP but they have not got any output. Because th
 crontab -e
 
 MAILTO=youremail@example.com
-1 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/distance_resolver_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/location_resolvel_croner.php
-5 * * * * /usr/bin/php -q -f /var/www/drupal_6/sites/all/modules/CO2/conf_participant_croner.
+*/5 * * * * /var/www/drupal_6/sites/all/modules/CO2/cron/ghg_calculator_cron
 ----------
 
 === Create database structure
