@@ -1,5 +1,7 @@
+<?php require_once('cron/CO2.conf.php'); ?>
+
 <script type="text/javascript"
-  src="http://maps.googleapis.com/maps/api/js?key=AIzaSyBjBQ3ho3wTYIDgxSa8g_3ryCpNfrSAn0U&sensor=false">
+  src="http://maps.googleapis.com/maps/api/js?key=<?php print GOOGLE_MAP_API_KEY; ?>&sensor=false">
 </script>
 <style type="text/css">
   #map {

@@ -3,6 +3,8 @@
  * Set the module's constant
  *
  */
+//Google map api key
+define('GOOGLE_MAP_API_KEY', 'ChangeMe');
 
 //CO2 emission constants
 define('CO2_EMISSION_CAR', 176); // g/km
