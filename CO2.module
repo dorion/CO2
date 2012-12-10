@@ -3,7 +3,7 @@
  * Implementation of hook_boot()
  */
 function co2_boot() {
-  require_once('CO2.conf.php');
+  require_once('cron/CO2.conf.php');
 }
 
 /**

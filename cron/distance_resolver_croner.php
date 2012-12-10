@@ -1,7 +1,7 @@
 <?php
 //DB handler
 require_once('db.inc.php');
-require_once('../CO2.conf.php');
+require_once('CO2.conf.php');
 
 /**
  * Resolve the distance and the duration time with google distance matrix API
