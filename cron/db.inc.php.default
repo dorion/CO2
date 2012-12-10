@@ -9,20 +9,20 @@
 function connect_sql($server) {
   $sql_servers  = array(
                     'cdr' =>  array(
-                                'host' => 'localhost',
-                                'mysql_user' => 'cdr',
-                                'mysql_passwd' => 'Gj88PbFB8Ynx944f',
+                                'host' => 'tempcdrmysqlhost',
+                                'mysql_user' => 'cdruser',
+                                'mysql_passwd' => 'ChangeMe',
                                 'db_name' => 'cdr',
                               ),
                     'co2' =>  array(
-                                'host' => 'localhost',
-                                'mysql_user' => 'co2',
-                                'mysql_passwd' => 'd4XP545bMZrtnZ4B',
+                                'host' => 'drupalmysqlhost',
+                                'mysql_user' => 'drupalmysqluser',
+                                'mysql_passwd' => 'ChangeMe',
                                 'db_name' => 'co2',
                               ),
                     'iir2' => array(
-                                'host' => 'db2.voip.niif.hu',
-                                'mysql_user' => 'iirdevelop',
+                                'host' => 'cdrsourcehost',
+                                'mysql_user' => 'cdrsourceuser',
                                 'mysql_passwd' => 'T3UsxS6K',
                                 'db_name' => 'iir2',
                               ),
