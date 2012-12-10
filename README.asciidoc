@@ -2,22 +2,23 @@
 
 == Introduction
 
-This project is an Drupal module and some helper cli PHP script, which are process CDR log messages to define GHG emission save of the video conference units.
+This project is GNU Gatekeeper CDR log messages processor to calculate GHG emission save of the video conference units.
 
 == Features
 
 * filter the original log messages from MySQL database
 * separate the conferences and the participants from the CDR messages
 * resolve participant locations by GDS number or IP address
-* resolve distance and possible travel time with Google distance API between conferences and participant
-* create table base CO2 emission save report monthly and yearly resolution
+* resolve distance and possible travel (by car) time with Google distance API between conferences and participant
+* create table base GHG emission save report monthly and yearly resolution
 * show participant GHG emission saving per conference
+* show the particiapnts and the calulated route (by car) on the Google Maps
 
 == How is works?
 
-Install the croner scripts, which are process the logs by the algorithm. The scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finally it resolve the distance and the possibly travel time between the conference and the participants.
+Install the croner scripts, which are process the logs by the algorithm. Filtered out the unprocessable data and moved data into the temp table. Then scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finally it resolve the distance and the possibly travel time between the conference and the participants.
 
-After that the Drupal module create GHG emission save report in yearly and monthly resolution.
+After that the Drupal module show GHG emission save report in yearly and monthly resolution.
 
 == Algorithm
 
@@ -52,7 +53,7 @@ While filtering the data, calculating the derived values we are using the follow
 
 === Input format
 
-In our organization collect CDR into MySQL tables. So we easily filter and convert to the input format which is same as templ_log table schema:
+In our organization collect CDR into MySQL tables. So it easily filter and convert to the input format which is same as templ_log table schema:
 * conf_id char (100): identifier of a conference
 * start_datetime date time: when the conference was start
 * duration integer (10): conference duration in second
@@ -209,7 +210,7 @@ Here is the database schema:
       latitude double DEFAULT NULL COMMENT 'Latitude',
       longitude double DEFAULT NULL COMMENT 'Longitude',
       PRIMARY KEY (cid)
-    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    ) DEFAULT CHARSET=utf8;
 
     -- --------------------------------------------------------
     CREATE TABLE conf_part_trans (
@@ -218,7 +219,7 @@ Here is the database schema:
       distance double unsigned DEFAULT NULL COMMENT 'Distance between the confernce palce and the participant',
       period int(10) unsigned DEFAULT NULL COMMENT 'The calculated journey duration.',
       PRIMARY KEY (cid,pid)
-    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    ) DEFAULT CHARSET=utf8;
 
     -- --------------------------------------------------------
     CREATE TABLE participant (
@@ -228,7 +229,7 @@ Here is the database schema:
       latitude double DEFAULT NULL COMMENT 'Latitude',
       longitude double DEFAULT NULL COMMENT 'Longitude',
       PRIMARY KEY (pid)
-    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+    ) DEFAULT CHARSET=utf8;
 
     -- --------------------------------------------------------
     CREATE TABLE temp_log (
@@ -241,7 +242,7 @@ Here is the database schema:
       caller_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
       called_IP varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
       PRIMARY KEY (ID)
-    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_hungarian_ci AUTO_INCREMENT=192 ;
+    ) DEFAULT CHARSET=utf8;
 
 ----------
 
@@ -253,7 +254,7 @@ Here is the database schema:
 
 == Implementation Remarks
 
-* The CO2 calculator implemented in http://php.net[PHP] and http://api.drupal.org[Drupal API]
+* The GHG calculator implemented in http://php.net[PHP] and http://api.drupal.org[Drupal API]
 * Powerful database back-end on http://www.mysql.com[MySQL]
 * Location resolving by IP with http://freegeoip.net[Free geoIP]
 * Destination and travel time resolving with http://code.google.com/intl/hu-HU/apis/maps/documentation/distancematrix/[The Google Distance Matrix API]
