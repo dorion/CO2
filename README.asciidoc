@@ -103,6 +103,27 @@ When we have participants we need resolve them location:
 
 The location accuracy is very divergence in many case it is only approximate data!
 
+=== Location accurancy improvement
+
+Our NREN we have a precise database our VC endpoint location informations. So the Hungarian perticipant location is very precise. If your NREN has a same databas you can improve you GHG emission report.
+
+But this you have to modify some PHP code like the follow example code:
+------
+#cron/location_resolvel_croner.php
+...
+
+class myNRENLocationResolver extends LocationResolver {
+  public function   public function ownLocationByGDS($GDS) {
+    #your code here
+  }
+}
+
+#LocationResolver::resolver();
+myNRENLocationResolver::resolver();
+
+...
+------
+
 === Distance and duration resolver
 
 After or parallel with described in the previous tow paragraphs processes we can start resolve distance and the duration. What would we do this before must be nominated by the conference venue. It will be a random connected participant's location.
@@ -152,17 +173,17 @@ The third part of the surface is the configuration display, where we can see wha
 
 List of the available constants:
 * CO2_EMISSION_CAR: average car GHG emission in g/km
-CO2_EMISSION_TRAIN: average Hungarian train GHG emission in g/km
-CO2_EMISSION_AEROPLANE_800: average aeroplane GHG emission under 800km in g/km
-CO2_EMISSION_AEROPLANE_800_PLUS: average aeroplane GHG emission over 800km g/km
-CO2_EMISSION_MCU: MCU GHG emission in g/s
-CO2_EMISSION_GATEKEEPER: gatekeeper GHG emission in g/s
-CO2_EMISSION_VIDCONF_ENDPOINT: video conference endpoint GHG emission in g/s
-CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY: video conference endpoint display GHG emission in g/s
-CO2_DISTANCE_CAR: maximal distance value when we calculate with car GHG emission value in km
-CO2_DISTANCE_TRAIN: maximal distance value when we calculate with train GHG emission value in km
-CO2_DISTANCE_AEROPLANE: maximal distance value when we calculate with aeroplane GHG emission value in km
-CO2_AVERAGE_SPEED_AEROPLANE: average aeroplane speed in m/s to the duration calculation when we calculate the absolute distance
+* CO2_EMISSION_TRAIN: average Hungarian train GHG emission in g/km
+* CO2_EMISSION_AEROPLANE_800: average aeroplane GHG emission under 800km in g/km
+* CO2_EMISSION_AEROPLANE_800_PLUS: average aeroplane GHG emission over 800km g/km
+* CO2_EMISSION_MCU: MCU GHG emission in g/s
+* CO2_EMISSION_GATEKEEPER: gatekeeper GHG emission in g/s
+* CO2_EMISSION_VIDCONF_ENDPOINT: video conference endpoint GHG emission in g/s
+* CO2_EMISSION_VIDCONF_ENDPOINT_DISPLAY: video conference endpoint display GHG emission in g/s
+* CO2_DISTANCE_CAR: maximal distance value when we calculate with car GHG emission value in km
+* CO2_DISTANCE_TRAIN: maximal distance value when we calculate with train GHG emission value in km
+* CO2_DISTANCE_AEROPLANE: maximal distance value when we calculate with aeroplane GHG emission value in km
+* CO2_AVERAGE_SPEED_AEROPLANE: average aeroplane speed in m/s to the duration calculation when we calculate the absolute distance
 
 == Install
 
