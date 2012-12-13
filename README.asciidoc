@@ -14,7 +14,7 @@ This project is GNU Gatekeeper CDR log messages processor to calculate GHG emiss
 * show participant GHG emission saving per conference
 * show the particiapnts and the calulated route (by car) on the Google Maps
 
-== How is works?
+== How is it works?
 
 Install the croner scripts, which are process the logs by the algorithm. Filtered out the unprocessable data and moved data into the temp table. Then scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finally it resolve the distance and the possibly travel time between the conference and the participants.
 
@@ -243,6 +243,15 @@ Here is the database schema:
     ) DEFAULT CHARSET=utf8;
 
 ----------
+
+=== Rename and fill in the config files
+----------
+cd yourDrupalInstallation/module/CO2
+mv cron/CO2.conf.php.default cron/CO2.conf.php
+mv cron/db.inc.php.default cron/db.inc.php
+----------
+
+Then fill in them with the right data.
 
 == Future development possibility
 
