@@ -1,33 +1,37 @@
-= GHG emission saving calculator from the video conference logs
+= Video conference GHG emission savings calculator, based on session logs processing
 
 == Introduction
 
-This project is GNU Gatekeeper CDR log messages processor to calculate GHG emission save of the video conference units.
+This project is a GNU Gatekeeper CDR log messages processor that calculates GHG emission savings of using video conferencing
 
 == Features
 
-* filter the original log messages from MySQL database
-* separate the conferences and the participants from the CDR messages
-* resolve participant locations by GDS number or IP address
-* resolve distance and possible travel (by car) time with Google distance API between conferences and participant
-* create table base GHG emission save report monthly and yearly resolution
-* show participant GHG emission saving per conference
-* show the particiapnts and the calulated route (by car) on the Google Maps
+* filters the original log messages from MySQL database
+* separates the conferences and the participants from the CDR messages
+* resolves participant locations by GDS number or IP address
+* resolves distance and possible travel time (by air or car) with Google distance API between participants' locations
+* creates table based GHG emission savings report with monthly and yearly resolution
+* shows participants' GHG emission saving per conference session
+* shows the particiapts' locations and the calculated route (by car) on Google Map
 
-== How is it works?
+== How does it work?
 
-Install the croner scripts, which are process the logs by the algorithm. Filtered out the unprocessable data and moved data into the temp table. Then scripts separate and write into database the conferences and the conferences participants from the CDR log message. Than resolve the participants and the conferences location. Finally it resolve the distance and the possibly travel time between the conference and the participants.
+Install the croner scripts, which process the logs by the algorithm. Filter out the unprocessable data and move data into the temp table. 
+Then scripts from the CDR log message separate and write into database the conferences and the conferences participants. 
+Than resolve the participants' and the conference locations. Finally resolve the distance and the possible travel time between the 
+conference and the participants.
 
-After that the Drupal module show GHG emission save report in yearly and monthly resolution.
+After that the Drupal module shows the GHG emission saved in yearly and monthly reports.
 
 == Algorithm
 
 As the first step, we collect the conference log entries from various databases and consolidate them into a common data structure into a temporary database table.
-After pre filtering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later while preparing the reports.
+After pre filtering the logs/conferences as the second step we restructure the data into a structure that can be handled much more easier later 
+while preparing the reports.
 
-Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers. In the process almost the all personal data.
+Here the CONFERENCE_ID and the PARTICIPANT_ID are unique database scoped own identifiers. In the process almost all personal data.
 
-While filtering the data, calculating the derived values we are using the following algorithm:
+While filtering the data, we use the following algorithm to calculate the derived values:
 
 1. Collect every information in a common format;
 2. Drop all conference shorter than 5 minutes assuming that these were test calls and also narrow log records of only one gatekeeper.
@@ -48,12 +52,13 @@ While filtering the data, calculating the derived values we are using the follow
 
 6. Set the location, start_time and duration of the conference to a randomly chosen participant
 7. Calculate the distance of every participants of this conference to its location and the time of the travel needed using Google Maps API
-8. Since this query is limited the results are cached.
+8. Since the frequency of this query is limited the results are cached.
 9. Create reports using mainly "Conference-Participant" table for the time slot requested by the user by summarizing the distances not done.
 
 === Input format
 
-In our organization collect CDR into MySQL tables. So it easily filter and convert to the input format which is same as templ_log table schema:
+At our organization we collect CDRs into MySQL tables. Therefore it is easy to filter and convert to the input format which is the same as templ_log table schema
+below:
 * conf_id char (100): identifier of a conference
 * start_datetime date time: when the conference was start
 * duration integer (10): conference duration in second
@@ -62,52 +67,58 @@ In our organization collect CDR into MySQL tables. So it easily filter and conve
 * caller_IP char (100): caller's IP address if it exists
 * called_IP char (100): called's IP address if it exists
 
-Afterwards we process this database records not the original ones. For these reasons, if someone want to use this application he/she can convert his/her log entries to this format and insert into temp_log table.
+Afterwards we process these database records, and not the original ones. For this reason, if someone wants to use this application he/she should convert 
+the available log entries into this format and insert them into temp_log table.
 
-There is not import API or interface yet. This conversion is must be manually we do not provided any converter tool.
+There is no import API or interface yet. This conversion must be done manually, we do not provide any converter tool.
 
 === Filtering
 
-So before log parsing we have to filter the input data:
+Before parsing the log, we have to filter the input data:
  1. First select record of only one gatekeeper
  2. Then drop the short conference (less then 5 minutes)
  3. After that drop the VCR (Video Content Recorder) records
- 4. Finally insert this records into the temp_log table.
+ 4. Finally insert the records into the temp_log table.
 
- In practice this is only two step a SQL SELECT and the SQL INSERT operation.
+ In practice this is only two steps: an SQL SELECT and an SQL INSERT operation.
 
 === Conference and participant unstick
 
-In the beginning separate the MCU conference and the participants of this type of conference. The procedure is as follow:
+In the beginning separate the MCU conference and the participants of this type of conference. The procedure is as follows:
 1. Select all records from temp_log table where the called IP, called GDS, the caller IP or the caller GDS belong to MCU
-2. Than grouped these record by date and GDS number, these are the conferences, store them into conf table
-3. That groups containing the participant, so we can store into the participant table
-4. After participants storing, we can create connection between the conferences and the participants
-5. Finally delete the processed records
+2. Then group these records by date and GDS number, these are the conferences, store them into conf table
+3. The groups contain the participant, so we can store the info into the participant table
+4. After storing the participants, we can create connection between the conferences and the participants
+5. Finally delete all the processed records
 
-After that process the peer-to-peer video conference. It is very simple because what record is not belong to MCU conference is a peer-to-peer conference. This conferences are only one record in the database so we do not grouped them.
-1. Select records what are not MCU conference
-2. Create the participants and the conference per record
-3. Connected them into the conf_part_trans table
-4. Cleaned this record from the temp_log table
+After that process the peer-to-peer video conference. It is very simple because if a record does not belong to an MCU conference that refers to a 
+peer-to-peer conference. These conferences represented by only one record in the database so we do not have to group them.
+1. Select records that are not MCU conferences
+2. Create the participants and the conference per record information
+3. Connect them into the conf_part_trans table
+4. Clean this record from the temp_log table
 
-Create the participants per conference and add a conference. In this time we only know participant's GDS number or/and IP number. About the conference generally know only start date and time and the conference duration what we calculate from the participant first connection time and the last disconnection time.
+Create the participants per conference info and add a conference. This time we only know participant's GDS number or/and IP number. 
+About the conference we generally know only the start date and time and the conference duration what we calculate from the first participant's 
+connection time and the last's disconnection time.
 
 === Location resolver
 
-When we have participants we need resolve them location:
+When we have participants we need to resolve their location:
 1. Select participants which have got unresolved location
-2. In this action we used the own only Hungarian GDS number-location database if there is an Hungarian GDS number
-3. If the GDS number is not Hungarian we resolve location by the GDS country prefix or only there is IP number we use freegeoip.com IP-to-coordinate API.
-4. Update the participant location
+2. In this action we use our own GDS number-location database if there is a domestic (Hungarian) GDS number (our database contains only Hungarian data)
+3. If the GDS number is not domestic we resolve the location by the GDS country prefix or if we only have IP addresses we use the freegeoip.com provided 
+IP-to-geocoordinate API.
+4. Update the participant's location
 
-The location accuracy is very divergence in many case it is only approximate data!
+The location accuracy is very diverse in many case, so it is only an approximate data!
 
 === Location accurancy improvement
 
-Our NREN we have a precise database our VC endpoint location informations. So the Hungarian perticipant location is very precise. If your NREN has a same databas you can improve you GHG emission report.
+At our NREN we have a precise database about our VC endpoints location information. So the domestic participant location is very precise. 
+If your have a similar database you can improve your GHG emission report.
 
-But this you have to modify some PHP code like the follow example code:
+In this case you have to modify some PHP code, like the following example:
 ------
 #cron/location_resolvel_croner.php
 ...
@@ -126,20 +137,28 @@ myNRENLocationResolver::resolver();
 
 === Distance and duration resolver
 
-After or parallel with described in the previous tow paragraphs processes we can start resolve distance and the duration. What would we do this before must be nominated by the conference venue. It will be a random connected participant's location.
+After that, or parallel with what is described in the previous two paragraphs, we can start resolve distance and the duration. 
+The assumed conference venue will be the location of a randomly choosed connected participant.
 
-We used Google Maps Distance matrix API to provide distance and the duration of the trip. This web-service provide distance and the trip duration between two point on the map on the road network. The API can calculate distance in only three mode walking, bicycling and driving (with car). We use only the third driving mode to calculate the distance and duration. Despite to the web-servise do not capable to plan route with train or aeroplane we use this data when we calculate the journey GHG emission. We think this is an acceptable simplification.
+We use Google Maps Distance matrix API to provide distance and the duration of the trip. This web-service provide distance and 
+the trip duration between two point on the map on the road network. The API can calculate distance in only three mode walking, 
+bicycling and driving (with car). We use only the third (driving) mode to calculate the distance and duration. 
+Since the web-servise cannot plan the route with train or other means of transport, we use this data when we calculate 
+the GHG emission of the travel. Be aware, that this is a simplification.
 
-But some cases we do not get back values for example the origin and the destination are not on same continent or the map is incomplete. In this case we figure the tow point absolute distance each other and we try estimate the duration of the journey.
+In some cases we do not get back valid values, for example if the origin and the destination are not on the same continent or 
+the map is incomplete. In this case we figure out the two points absolute geographical distance from each other and we try to estimate the duration 
+of the journey.
 
-Google API has a many limitations:
-100 elements per query.
-100 elements per 10 seconds.
+The Google API has many limitations:
+It supports only 100 elements per query.
+It resolves only 100 elements per 10 seconds.
 2 500 elements per 24 hour period.
 
-For this reasons and optimization, speed-up effort forcing us the reuse the previous A to B and B to A points reach as a cache.
+For the above limitation and for more efficient operation and speed-up, we reuse the previously resolved A to B and B to A points reach, stored them
+in a cache.
 
-=== GHG saving calculator
+=== GHG savings calculator
 
 On a more precise way, the saved emission is equal to sum(calculated distance * vehicle specific GHG emission) - (time of conference * (conference type specific GHG emission + GHG emission of an average HD video conference endpoint device + GHG emission of the average display) * number of participants)
 
@@ -147,29 +166,32 @@ When calculating vehicle dependent emission we are assuming that the following v
 distance vehicle
     0 - X car
     X - Y train
-    Y - 800 km air-plane
-    801 km - infinity aeroplane 800+ km
+    Y - 800 km air (short distance)
+    801 km - infinity air (long distance)
 
-X, Y and the other constants are parameters of the algorithm.
+X, Y and other constants are tunable parameters of the algorithm.
 
-Conference type depend GHG emission:
+Conference type depending GHG emission:
 * MCU conference GHG emission = (MCU emission + gatekeeper emission) / number of participants
 * peer-to-peer conference GHG emission = gatekeeper emission / number of participants
 
 === Visualizer
 
-This is a very simple Drupal module which serve two resolution of the GHG saving report monthly and yearly. In the first case we have to given the year and the month and the second case we have to given only the year. Both two case give back a paged list of the conferences and above this list there is a summary to the specified period. In the list show the conference ID, conference start date time, conference duration and the GHG emission save in kg or ton.
+This is a very simple Drupal module which provides two resolutions of the GHG saving report: monthly and yearly. 
+In the first case we have to give the year and the month and in the second case we have to give only the year. 
+In both two cases it a page is generated with a list of the conferences and on the top of this list there is a summary of the 
+specified period. The list shows the conference ID, conference start date an time, conference duration and the GHG emission saved in kg or ton.
 
 Clicking on the conference ID we can show the participants of the conference and their detailed data such as:
 * participant ID
-* Suspected GHG emission
+* Estimated GHG emission
 * GHG emission saving
 * Working hours savings
-and with special permission
+and with special access permission
 * coordinates
-* show on Google map
+* display of a map with locations
 
-The third part of the surface is the configuration display, where we can see what is the constants value.
+The third part of the interface is the configuration display, where we can check the constants' (parameter) values.
 
 List of the available constants:
 * CO2_EMISSION_CAR: average car GHG emission in g/km
@@ -202,13 +224,14 @@ Add the following lines to the Drupal settings.php:
            );
 ----------
 
-Naturally you have to change the db_user names, password, sql server and the database names.
+Obviously you have to change the db_user names, password, sql server and the database names.
 
-After go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
+Then go to http://yourdrupal.com/admin/modules and enable the "CO2 emission reporter" module.
 
 === Configure cron jobs
 
-The processor script written in PHP but they have not got any output. Because this scripts run with cli PHP in the background. The PHP is a script program language so we have to call with manually or can be automated with cron. See the crontab file content below:
+The processor script is written in PHP but they have not got any output. The scripts run with cli PHP in the background. 
+PHP is a script program language so we have to run manually or can be automatically launch from cron. See the crontab file content below:
 
 ----------
 crontab -e
@@ -272,7 +295,7 @@ mv cron/CO2.conf.php.default cron/CO2.conf.php
 mv cron/db.inc.php.default cron/db.inc.php
 ----------
 
-Then fill in them with the right data.
+Then fill them with the right data.
 
 == Future development possibility
 
